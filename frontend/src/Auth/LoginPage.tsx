@@ -1,53 +1,93 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, Phone, Send, RotateCcw, Lock } from 'lucide-react';
+import { User, Phone, Send, RotateCcw, Lock, AlertCircle } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import ApiService from '../services/api';
 
 const AutoServiceLogin = () => {
-  const navigate = useNavigate();
-  const [fullName, setFullName] = useState('John Doe');
-  const [mobileNumber, setMobileNumber] = useState('+1 555 000 1234');
+  const { login } = useAuth();
+  const [fullName, setFullName] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [maskedMobile, setMaskedMobile] = useState('');
 
   const handleSendOtp = async () => {
+    setError('');
+    
     if (!fullName.trim() || !mobileNumber.trim()) {
-      alert('Please fill in all required fields');
+      setError('Please fill in all required fields');
       return;
     }
     
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsOtpSent(true);
+    
+    try {
+      // First try to signup if new customer
+      if (!isOtpSent) {
+        try {
+          await ApiService.customerSignup(mobileNumber.trim(), fullName.trim());
+        } catch {
+          // If signup fails (customer already exists), that's okay, proceed with OTP
+          console.log('Customer already exists, proceeding with OTP');
+        }
+      }
+      
+      // Send OTP
+      const response = await ApiService.customerSendOTP(mobileNumber.trim());
+      
+      if (response.success && response.data) {
+        setIsOtpSent(true);
+        setMaskedMobile(response.data.mobile);
+        setError(''); // Clear any previous errors
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send OTP. Please try again.');
+    } finally {
       setIsLoading(false);
-      alert('OTP sent successfully!');
-    }, 1500);
+    }
   };
 
   const handleResendOtp = async () => {
+    setError('');
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    
+    try {
+      const response = await ApiService.customerSendOTP(mobileNumber.trim());
+      
+      if (response.success) {
+        setError(''); // Clear any previous errors
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend OTP. Please try again.');
+    } finally {
       setIsLoading(false);
-      alert('OTP resent successfully!');
-    }, 1500);
+    }
   };
 
   const handleSubmit = async () => {
+    setError('');
+    
     if (!otp.trim()) {
-      alert('Please enter the OTP');
+      setError('Please enter the OTP');
       return;
     }
     
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    
+    try {
+      const response = await ApiService.customerVerifyOTP(mobileNumber.trim(), otp.trim());
+      
+      if (response.success && response.data) {
+        login(response.data);
+        // Navigation will be handled by the parent component based on auth state
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid OTP. Please try again.');
+    } finally {
       setIsLoading(false);
-      alert('Login successful!');
-      // Navigate to dashboard after successful login
-      navigate('/dashboard');
-    }, 1500);
+    }
   };
 
   return (
@@ -77,7 +117,20 @@ const AutoServiceLogin = () => {
         {/* Subtitle */}
         <p className="text-gray-600 text-center mb-8 text-sm">
           Customer access for booking, tracking, and rescheduling
+          {isOtpSent && maskedMobile && (
+            <span className="block mt-1 text-blue-600">
+              OTP sent to {maskedMobile}
+            </span>
+          )}
         </p>
+
+        {/* Error Message */}
+        {error && (
+          <div className="flex items-center gap-2 p-3 mb-6 bg-red-100/80 border border-red-200 text-red-700 rounded-xl text-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Form Fields */}
         <div className="space-y-4 mb-6">
@@ -164,13 +217,35 @@ const AutoServiceLogin = () => {
           </div>
         </div>
 
-        {/* Terms and Privacy */}
-        <p className="text-xs text-gray-500 text-center">
+        {/* Footer Notice */}
+        <p className="text-xs text-gray-500 text-center mt-6">
           By continuing, you agree to our{' '}
           <span className="text-blue-600 cursor-pointer hover:underline">Terms</span>{' '}
           and acknowledge the{' '}
           <span className="text-blue-600 cursor-pointer hover:underline">Privacy Policy</span>
         </p>
+
+        {/* Employee Login Link */}
+        <div className="text-center mt-4 space-y-2">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <a 
+              href="/register" 
+              className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
+            >
+              Customer Registration
+            </a>
+          </p>
+          <p className="text-sm text-gray-600">
+            Are you an employee?{' '}
+            <a 
+              href="/employee/login" 
+              className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
+            >
+              Employee Login
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );
