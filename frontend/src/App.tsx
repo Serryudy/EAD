@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidemenu from './components/Sidemenu';
-import Dashboard from './components/Dashboard';
-import BookAppointmentForm from './components/BookingAppoinmentForm';
-import MyCalendar from './components/Mycalendar';
+import Dashboard from './components/Dashboard/Dashboard';
+import BookAppointmentForm from './components/BookAppointment/BookAppointmentForm';
+import MyCalendar from './components/Calendar/MyCalendar';
 
 const App: React.FC = () => {
   return (

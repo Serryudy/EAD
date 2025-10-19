@@ -1,14 +1,6 @@
 import React from 'react';
 import { Card, ProgressBar } from 'react-bootstrap';
-
-interface ServiceStep {
-  id: string;
-  title: string;
-  status: 'completed' | 'in-progress' | 'queued';
-  statusText: string;
-  time: string;
-  color: 'success' | 'primary' | 'secondary';
-}
+import ServiceStepItem, { type ServiceStep } from './ServiceStepItem';
 
 interface ServiceProgressCardProps {
   orderNumber: string;
@@ -23,15 +15,6 @@ const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
   completionPercentage,
   steps
 }) => {
-  const getStatusDotColor = (color: string) => {
-    const colorMap: { [key: string]: string } = {
-      success: '#28a745',
-      primary: '#9b59b6',
-      secondary: '#6c757d'
-    };
-    return colorMap[color] || '#6c757d';
-  };
-
   return (
     <Card 
       className="shadow-sm border"
@@ -86,48 +69,7 @@ const ServiceProgressCard: React.FC<ServiceProgressCardProps> = ({
         {/* Service Steps */}
         <div className="d-flex flex-column" style={{ gap: '1rem' }}>
           {steps.map((step) => (
-            <div 
-              key={step.id}
-              className="d-flex align-items-start"
-              style={{ gap: '0.75rem' }}
-            >
-              {/* Status Dot */}
-              <div
-                className="rounded-circle flex-shrink-0"
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  backgroundColor: getStatusDotColor(step.color),
-                  marginTop: '6px'
-                }}
-              />
-
-              {/* Step Content */}
-              <div className="flex-grow-1 d-flex justify-content-between align-items-start">
-                <div>
-                  <p className="mb-0 fw-medium" style={{ fontSize: '0.9375rem' }}>
-                    {step.title}
-                  </p>
-                  <p 
-                    className="mb-0 text-muted" 
-                    style={{ fontSize: '0.8125rem' }}
-                  >
-                    {step.statusText}
-                  </p>
-                </div>
-                
-                {/* Time */}
-                <span 
-                  className="text-muted flex-shrink-0" 
-                  style={{ 
-                    fontSize: '0.8125rem',
-                    marginLeft: '1rem'
-                  }}
-                >
-                  {step.time}
-                </span>
-              </div>
-            </div>
+            <ServiceStepItem key={step.id} step={step} />
           ))}
         </div>
       </Card.Body>
