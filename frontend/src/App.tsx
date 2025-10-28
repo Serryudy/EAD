@@ -4,6 +4,8 @@ import Sidemenu from './components/Sidemenu';
 import Dashboard from './components/Dashboard/Dashboard';
 import BookAppointmentForm from './components/BookAppointment/BookAppointmentForm';
 import MyCalendar from './components/Calendar/MyCalendar';
+import EmployeeDashboard from './components/Dashboard/EmployeeDashboad' ;
+import EmployeeAppoinment from './components/Dashboard/EmployeeAppoinment';
 
 const App: React.FC = () => {
   return (
@@ -17,6 +19,8 @@ const App: React.FC = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/book-appointment" element={<BookAppointmentForm />} />
             <Route path="/my-calendar" element={<MyCalendar />} />
+            <Route path='/employeedashboard' element={<EmployeeDashboard/>}/>
+            <Route path='/employeeappointment' element={<EmployeeAppoinment/>}/>
           </Routes>
         </main>
       </div>
