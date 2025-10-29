@@ -6,6 +6,7 @@ import BookAppointmentForm from './components/BookAppointment/BookAppointmentFor
 import MyCalendar from './components/Calendar/MyCalendar';
 import EmployeeDashboard from './components/Dashboard/EmployeeDashboad' ;
 import EmployeeAppoinment from './components/Dashboard/EmployeeAppoinment';
+import EmployeeAppoinmentDetails from './components/Dashboard/EmployeeAppoinmentDetails'; 
 
 const App: React.FC = () => {
   return (
@@ -21,6 +22,7 @@ const App: React.FC = () => {
             <Route path="/my-calendar" element={<MyCalendar />} />
             <Route path='/employeedashboard' element={<EmployeeDashboard/>}/>
             <Route path='/employeeappointment' element={<EmployeeAppoinment/>}/>
+            <Route path='/employeeappointment/${appointmentId}' element={<EmployeeAppoinmentDetails/>}/>
           </Routes>
         </main>
       </div>

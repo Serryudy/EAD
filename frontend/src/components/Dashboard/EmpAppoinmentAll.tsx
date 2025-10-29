@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Card, Table, Badge, Button, Modal, Form } from 'react-bootstrap';
-import { FiEdit, FiClock, FiCalendar } from 'react-icons/fi';
+import React from 'react';
+import { Card, Table, Badge, Button } from 'react-bootstrap';
+import { FiClock, FiCalendar, FiEye } from 'react-icons/fi';
 import { BsFillCarFrontFill } from 'react-icons/bs';
+import { useNavigate } from 'react-router-dom';
 import './EmpAppoinmentAll.css';
 
 type AppointmentStatus = 'pending' | 'confirmed' | 'in-service' | 'completed' | 'cancelled';
@@ -9,107 +10,109 @@ type AppointmentStatus = 'pending' | 'confirmed' | 'in-service' | 'completed' | 
 interface Appointment {
   id: number;
   customerName: string;
+  customerPhone: string;
+  customerEmail: string;
   vehicleNumber: string;
   vehicleType: string;
   date: string;
   time: string;
   status: AppointmentStatus;
   service: string;
-}
-
-interface StatusConfig {
-  bg: string;
-  text: string;
+  serviceDescription: string;
+  estimatedCost: number;
 }
 
 const EmpAppoinmentAll: React.FC = () => {
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-  const [newStatus, setNewStatus] = useState<AppointmentStatus>('pending');
+  const navigate = useNavigate();
 
   // Sample appointment data
-  const [appointments, setAppointments] = useState<Appointment[]>([
+  const appointments: Appointment[] = [
     {
       id: 1,
       customerName: 'John Smith',
+      customerPhone: '+1 (555) 123-4567',
+      customerEmail: 'john.smith@email.com',
       vehicleNumber: 'ABC-1234',
       vehicleType: 'Toyota Corolla',
       date: '2025-10-29',
       time: '09:00 AM',
       status: 'pending',
-      service: 'Oil Change'
+      service: 'Oil Change',
+      serviceDescription: 'Full synthetic oil change with filter replacement',
+      estimatedCost: 89.99
     },
     {
       id: 2,
       customerName: 'Sarah Johnson',
+      customerPhone: '+1 (555) 234-5678',
+      customerEmail: 'sarah.j@email.com',
       vehicleNumber: 'XYZ-5678',
       vehicleType: 'Honda Civic',
       date: '2025-10-29',
       time: '11:30 AM',
       status: 'confirmed',
-      service: 'Brake Check'
+      service: 'Brake Check',
+      serviceDescription: 'Complete brake system inspection and pad replacement',
+      estimatedCost: 249.99
     },
     {
       id: 3,
       customerName: 'Mike Wilson',
+      customerPhone: '+1 (555) 345-6789',
+      customerEmail: 'mike.wilson@email.com',
       vehicleNumber: 'DEF-9012',
       vehicleType: 'Ford Focus',
       date: '2025-10-29',
       time: '02:00 PM',
       status: 'in-service',
-      service: 'Full Service'
+      service: 'Full Service',
+      serviceDescription: 'Complete vehicle maintenance and inspection',
+      estimatedCost: 399.99
     },
     {
       id: 4,
       customerName: 'Emily Davis',
+      customerPhone: '+1 (555) 456-7890',
+      customerEmail: 'emily.d@email.com',
       vehicleNumber: 'GHI-3456',
       vehicleType: 'BMW 320i',
       date: '2025-10-30',
       time: '10:00 AM',
       status: 'completed',
-      service: 'Tire Replacement'
+      service: 'Tire Replacement',
+      serviceDescription: 'Four tire replacement with alignment',
+      estimatedCost: 699.99
     },
     {
       id: 5,
       customerName: 'Robert Brown',
+      customerPhone: '+1 (555) 567-8901',
+      customerEmail: 'robert.brown@email.com',
       vehicleNumber: 'JKL-7890',
       vehicleType: 'Mercedes C-Class',
       date: '2025-10-30',
       time: '03:30 PM',
       status: 'pending',
-      service: 'AC Repair'
+      service: 'AC Repair',
+      serviceDescription: 'Air conditioning system diagnostics and repair',
+      estimatedCost: 450.00
     }
-  ]);
+  ];
 
   const getStatusBadge = (status: AppointmentStatus): React.ReactElement => {
-    const statusConfig: Record<AppointmentStatus, StatusConfig> = {
-      pending: { bg: 'warning', text: 'Pending' },
-      confirmed: { bg: 'primary', text: 'Confirmed' },
-      'in-service': { bg: 'info', text: 'In Service' },
-      completed: { bg: 'success', text: 'Completed' },
-      cancelled: { bg: 'danger', text: 'Cancelled' }
+    const statusText = {
+      pending: 'Pending',
+      confirmed: 'Confirmed',
+      'in-service': 'In Service',
+      completed: 'Completed',
+      cancelled: 'Cancelled'
     };
 
-    const config = statusConfig[status] || statusConfig.pending;
-    return <Badge bg={config.bg}>{config.text}</Badge>;
+    return <Badge bg="primary" style={{ backgroundColor: '#0d6efd' }}>{statusText[status]}</Badge>;
   };
 
-  const handleStatusChange = (appointment: Appointment): void => {
-    setSelectedAppointment(appointment);
-    setNewStatus(appointment.status);
-    setShowModal(true);
-  };
-
-  const handleSaveStatus = (): void => {
-    if (selectedAppointment) {
-      setAppointments(appointments.map(apt => 
-        apt.id === selectedAppointment.id 
-          ? { ...apt, status: newStatus }
-          : apt
-      ));
-      setShowModal(false);
-      setSelectedAppointment(null);
-    }
+  const handleViewDetails = (appointmentId: number): void => {
+    navigate(`/employeeappointment/${appointmentId}`);
   };
 
   return (
@@ -133,7 +136,7 @@ const EmpAppoinmentAll: React.FC = () => {
                   <th>Service</th>
                   <th>Schedule</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th>Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -174,13 +177,13 @@ const EmpAppoinmentAll: React.FC = () => {
                     <td>{getStatusBadge(appointment.status)}</td>
                     <td>
                       <Button
-                        variant="outline-primary"
+                        variant="primary"
                         size="sm"
-                        className="action-btn"
-                        onClick={() => handleStatusChange(appointment)}
+                        className="details-btn"
+                        onClick={() => handleViewDetails(appointment.id)}
                       >
-                        <FiEdit className="me-1" />
-                        Update
+                        <FiEye className="me-1" />
+                        View Details
                       </Button>
                     </td>
                   </tr>
@@ -190,46 +193,6 @@ const EmpAppoinmentAll: React.FC = () => {
           </div>
         </Card.Body>
       </Card>
-
-      {/* Status Update Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Update Appointment Status</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedAppointment && (
-            <div>
-              <p><strong>Customer:</strong> {selectedAppointment.customerName}</p>
-              <p><strong>Vehicle:</strong> {selectedAppointment.vehicleNumber} - {selectedAppointment.vehicleType}</p>
-              <p><strong>Service:</strong> {selectedAppointment.service}</p>
-              <hr />
-              <Form.Group>
-                <Form.Label htmlFor="status-select">Change Status</Form.Label>
-                <Form.Select 
-                  id="status-select"
-                  value={newStatus} 
-                  onChange={(e) => setNewStatus(e.target.value as AppointmentStatus)}
-                  aria-label="Select appointment status"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="in-service">In Service</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </Form.Select>
-              </Form.Group>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleSaveStatus}>
-            Save Changes
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </>
   );
 };
