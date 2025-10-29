@@ -112,6 +112,10 @@
   gap: 0.25rem;
 }
 
+.info-item.d-flex {
+  flex-direction: row !important;
+}
+
 .info-item label {
   font-size: 0.875rem;
   color: #6c757d;
