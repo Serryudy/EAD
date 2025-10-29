@@ -1,0 +1,119 @@
+.employee-dashboard {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding: 2rem 0;
+}
+
+.dashboard-header {
+  background-color: #ffffff;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-left: 2rem;
+  margin-right: 2rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dashboard-icon {
+  font-size: 1.5rem;
+  color: #0d6efd;
+}
+
+.dashboard-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: #212529;
+}
+
+.header-right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.back-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  border-color: #dee2e6;
+}
+
+.new-appointment-btn {
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  background-color: #0d6efd;
+  border: none;
+}
+
+.new-appointment-btn:hover {
+  background-color: #0b5ed7;
+}
+
+.dashboard-content {
+  padding: 0 2rem;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Responsive Design */
+@media (max-width: 991px) {
+  .dashboard-header {
+    margin-left: 1rem;
+    margin-right: 1rem;
+  }
+
+  .dashboard-content {
+    padding: 0 1rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .employee-dashboard {
+    padding: 1rem 0;
+  }
+
+  .dashboard-header {
+    padding: 1rem;
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+  }
+
+  .header-left,
+  .header-right {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dashboard-title {
+    font-size: 1.25rem;
+  }
+
+  .dashboard-content {
+    padding: 0 0.5rem;
+  }
+
+  .back-btn,
+  .new-appointment-btn {
+    flex: 1;
+  }
+}
