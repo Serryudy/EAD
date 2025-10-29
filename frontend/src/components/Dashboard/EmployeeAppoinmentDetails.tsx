@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, Card, Badge, Button, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Badge, Button, Form, Modal, Toast, ToastContainer } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiPhone, FiMail, FiCalendar, FiClock, FiDollarSign } from 'react-icons/fi';
+import { FiArrowLeft, FiPhone, FiMail, FiCalendar, FiClock, FiDollarSign, FiEdit2, FiCheck } from 'react-icons/fi';
 import { BsFillCarFrontFill } from 'react-icons/bs';
 import './EmployeeAppoinmentDetails.css';
 
@@ -22,7 +22,7 @@ interface AppointmentDetails {
   status: AppointmentStatus;
   service: string;
   serviceDescription: string;
-  estimatedCost: number;
+  serviceCharge: number;
   notes: string;
 }
 
@@ -37,23 +37,30 @@ const EmployeeAppoinmentDetails: React.FC = () => {
     customerPhone: '+1 (555) 123-4567',
     customerEmail: 'john.smith@email.com',
     vehicleNumber: 'ABC-1234',
-    vehicleType: 'Toyota Corolla',
+    vehicleType: 'Sedan',
     vehicleMake: 'Toyota',
     vehicleModel: 'Corolla',
     vehicleYear: 2020,
     date: '2025-10-29',
-    time: '09:00 AM',
+    time: '09:00',
     status: 'pending',
     service: 'Oil Change',
-    serviceDescription: 'Full synthetic oil change with filter replacement. Includes multi-point inspection.',
-    estimatedCost: 89.99,
+    serviceDescription: 'Full synthetic oil change with filter replacement. Includes multi-point inspection.',  
+    serviceCharge: 0,
     notes: 'Customer requested Mobil 1 synthetic oil.'
   });
 
   const [isEditingStatus, setIsEditingStatus] = useState<boolean>(false);
   const [newStatus, setNewStatus] = useState<AppointmentStatus>(appointment.status);
-
-  const handleCallCustomer = (): void => {
+  const [isEditingSchedule, setIsEditingSchedule] = useState<boolean>(false);
+  const [newDate, setNewDate] = useState<string>(appointment.date);
+  const [newTime, setNewTime] = useState<string>(appointment.time);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [isEditingCharge, setIsEditingCharge] = useState<boolean>(false);
+  const [newCharge, setNewCharge] = useState<number>(appointment.serviceCharge);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVariant, setToastVariant] = useState<'success' | 'danger'>('success');  const handleCallCustomer = (): void => {
     window.location.href = `tel:${appointment.customerPhone}`;
   };
 
@@ -64,6 +71,42 @@ const EmployeeAppoinmentDetails: React.FC = () => {
   const handleUpdateStatus = (): void => {
     setAppointment({ ...appointment, status: newStatus });
     setIsEditingStatus(false);
+    setToastMessage('Status updated successfully!');
+    setToastVariant('success');
+    setShowToast(true);
+  };
+
+  const handleEditSchedule = (): void => {
+    setNewDate(appointment.date);
+    setNewTime(appointment.time);
+    setIsEditingSchedule(true);
+  };
+
+  const handleSaveSchedule = (): void => {
+    // Show confirmation modal before saving
+    setShowConfirmModal(true);
+  };
+
+  const confirmScheduleChange = (): void => {
+    setAppointment({ ...appointment, date: newDate, time: newTime });
+    setIsEditingSchedule(false);
+    setShowConfirmModal(false);
+    setToastMessage('Schedule updated and customer will be notified!');
+    setToastVariant('success');
+    setShowToast(true);
+  };
+
+  const handleEditCharge = (): void => {
+    setNewCharge(appointment.serviceCharge);
+    setIsEditingCharge(true);
+  };
+
+  const handleSaveCharge = (): void => {
+    setAppointment({ ...appointment, serviceCharge: newCharge });
+    setIsEditingCharge(false);
+    setToastMessage('Service charge updated successfully!');
+    setToastVariant('success');
+    setShowToast(true);
   };
 
   const getStatusBadge = (status: AppointmentStatus): React.ReactElement => {
@@ -191,9 +234,44 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                   <div className="info-item">
                     <label>
                       <FiDollarSign className="me-1" />
-                      Estimated Cost:
+                      Service Charge:
                     </label>
-                    <strong className="cost-amount">${appointment.estimatedCost.toFixed(2)}</strong>
+                    {isEditingCharge ? (
+                      <div className="d-flex gap-2 align-items-center mt-2">
+                        <Form.Control
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={newCharge}
+                          onChange={(e) => setNewCharge(parseFloat(e.target.value) || 0)}
+                          style={{ width: '150px' }}
+                        />
+                        <Button variant="success" size="sm" onClick={handleSaveCharge}>
+                          Save
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setIsEditingCharge(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="d-flex align-items-center gap-2">
+                        <strong className="cost-amount">
+                          ${appointment.serviceCharge.toFixed(2)}
+                        </strong>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={handleEditCharge}
+                        >
+                          <FiEdit2 className="me-1" />
+                          Edit
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card.Body>
@@ -202,24 +280,74 @@ const EmployeeAppoinmentDetails: React.FC = () => {
             {/* Schedule Information */}
             <Card className="detail-card mt-4">
               <Card.Body>
-                <h5 className="card-section-title mb-3">Schedule Information</h5>
-
-                <div className="info-group">
-                  <div className="info-item">
-                    <label>
-                      <FiCalendar className="me-1" />
-                      Date:
-                    </label>
-                    <strong>{appointment.date}</strong>
-                  </div>
-                  <div className="info-item">
-                    <label>
-                      <FiClock className="me-1" />
-                      Time:
-                    </label>
-                    <strong>{appointment.time}</strong>
-                  </div>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="card-section-title mb-0">Schedule Information</h5>
+                  {!isEditingSchedule && (
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={handleEditSchedule}
+                    >
+                      <FiEdit2 className="me-1" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
+
+                {isEditingSchedule ? (
+                  <div>
+                    <Form.Group className="mb-3">
+                      <Form.Label>
+                        <FiCalendar className="me-1" />
+                        Date:
+                      </Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={newDate}
+                        onChange={(e) => setNewDate(e.target.value)}
+                      />
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                      <Form.Label>
+                        <FiClock className="me-1" />
+                        Time:
+                      </Form.Label>
+                      <Form.Control
+                        type="time"
+                        value={newTime}
+                        onChange={(e) => setNewTime(e.target.value)}
+                      />
+                    </Form.Group>
+                    <div className="d-flex gap-2">
+                      <Button variant="primary" onClick={handleSaveSchedule}>
+                        Save Changes
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setIsEditingSchedule(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="info-group">
+                    <div className="info-item">
+                      <label>
+                        <FiCalendar className="me-1" />
+                        Date:
+                      </label>
+                      <strong>{appointment.date}</strong>
+                    </div>
+                    <div className="info-item">
+                      <label>
+                        <FiClock className="me-1" />
+                        Time:
+                      </label>
+                      <strong>{appointment.time}</strong>
+                    </div>
+                  </div>
+                )}
               </Card.Body>
             </Card>
 
@@ -292,6 +420,50 @@ const EmployeeAppoinmentDetails: React.FC = () => {
           </Col>
         </Row>
       </Container>
+
+      {/* Confirmation Modal for Schedule Change */}
+      <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Schedule Change</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>You are about to change the appointment schedule to:</p>
+          <ul>
+            <li><strong>Date:</strong> {newDate}</li>
+            <li><strong>Time:</strong> {newTime}</li>
+          </ul>
+          <p className="text-primary fw-bold mt-3">
+            Will you inform the customer about this change?
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowConfirmModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={confirmScheduleChange}>
+            Yes, Save & Notify Customer
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Toast Notification */}
+      <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
+        <Toast 
+          show={showToast} 
+          onClose={() => setShowToast(false)} 
+          delay={3000} 
+          autohide
+          bg={toastVariant}
+        >
+          <Toast.Header>
+            <FiCheck className="me-2" />
+            <strong className="me-auto">Success</strong>
+          </Toast.Header>
+          <Toast.Body className="text-white">
+            {toastMessage}
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
     </div>
   );
 };
