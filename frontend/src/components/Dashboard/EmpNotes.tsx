@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button, Modal, Form, ListGroup, Badge } from 'react-bootstrap';
+import { Card, Button, Modal, Form, ListGroup } from 'react-bootstrap';
 import { FiPlus, FiEdit2, FiTrash2, FiSave, FiX } from 'react-icons/fi';
 import './EmpNotes.css';
 
@@ -9,7 +9,6 @@ interface Note {
   content: string;
   createdAt: string;
   updatedAt: string;
-  priority: 'low' | 'medium' | 'high';
 }
 
 const EmpNotes: React.FC = () => {
@@ -19,24 +18,21 @@ const EmpNotes: React.FC = () => {
       title: 'Important Customer Follow-up',
       content: 'Call Mr. Johnson about his BMW service completion. He requested a detailed report.',
       createdAt: '2025-10-29',
-      updatedAt: '2025-10-29',
-      priority: 'high'
+      updatedAt: '2025-10-29'
     },
     {
       id: 2,
       title: 'Parts Order Reminder',
       content: 'Need to order brake pads for Ford Focus. Check inventory levels.',
       createdAt: '2025-10-28',
-      updatedAt: '2025-10-28',
-      priority: 'medium'
+      updatedAt: '2025-10-28'
     },
     {
       id: 3,
       title: 'Workshop Schedule',
       content: 'Team meeting scheduled for Friday at 2 PM to discuss new procedures.',
       createdAt: '2025-10-27',
-      updatedAt: '2025-10-27',
-      priority: 'low'
+      updatedAt: '2025-10-27'
     }
   ]);
 
@@ -44,13 +40,12 @@ const EmpNotes: React.FC = () => {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [formData, setFormData] = useState({
     title: '',
-    content: '',
-    priority: 'medium' as 'low' | 'medium' | 'high'
+    content: ''
   });
 
   const handleAddNote = () => {
     setEditingNote(null);
-    setFormData({ title: '', content: '', priority: 'medium' });
+    setFormData({ title: '', content: '' });
     setShowModal(true);
   };
 
@@ -58,8 +53,7 @@ const EmpNotes: React.FC = () => {
     setEditingNote(note);
     setFormData({
       title: note.title,
-      content: note.content,
-      priority: note.priority
+      content: note.content
     });
     setShowModal(true);
   };
@@ -92,18 +86,7 @@ const EmpNotes: React.FC = () => {
     }
     
     setShowModal(false);
-    setFormData({ title: '', content: '', priority: 'medium' });
-  };
-
-  const getPriorityBadge = (priority: string) => {
-    const priorityConfig = {
-      low: { bg: 'secondary', text: 'Low' },
-      medium: { bg: 'warning', text: 'Medium' },
-      high: { bg: 'danger', text: 'High' }
-    };
-
-    const config = priorityConfig[priority as keyof typeof priorityConfig] || priorityConfig.medium;
-    return <Badge bg={config.bg} className="priority-badge">{config.text}</Badge>;
+    setFormData({ title: '', content: '' });
   };
 
   return (
@@ -134,7 +117,6 @@ const EmpNotes: React.FC = () => {
                   <div className="note-header">
                     <div className="note-title-section">
                       <h6 className="note-item-title">{note.title}</h6>
-                      {getPriorityBadge(note.priority)}
                     </div>
                     <div className="note-actions">
                       <Button
@@ -201,20 +183,6 @@ const EmpNotes: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 required
               />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label htmlFor="priority-select">Priority</Form.Label>
-              <Form.Select
-                id="priority-select"
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'low' | 'medium' | 'high' })}
-                aria-label="Select note priority"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </Form.Select>
             </Form.Group>
           </Form>
         </Modal.Body>
