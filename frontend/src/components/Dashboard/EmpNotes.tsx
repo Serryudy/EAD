@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Card, Button, Modal, Form, ListGroup } from 'react-bootstrap';
-import { FiPlus, FiEdit2, FiTrash2, FiSave, FiX } from 'react-icons/fi';
+import { Card, Button, Modal, Form, Row, Col, Toast, ToastContainer } from 'react-bootstrap';
+import { FiPlus, FiEdit2, FiTrash2, FiSave, FiX, FiFileText, FiCheck } from 'react-icons/fi';
 import './EmpNotes.css';
 
 interface Note {
@@ -42,6 +42,11 @@ const EmpNotes: React.FC = () => {
     title: '',
     content: ''
   });
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVariant, setToastVariant] = useState<'success' | 'danger'>('success');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<number | null>(null);
 
   const handleAddNote = () => {
     setEditingNote(null);
@@ -59,21 +64,32 @@ const EmpNotes: React.FC = () => {
   };
 
   const handleDeleteNote = (noteId: number) => {
-    if (window.confirm('Are you sure you want to delete this note?')) {
-      setNotes(notes.filter(note => note.id !== noteId));
+    setNoteToDelete(noteId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (noteToDelete !== null) {
+      setNotes(notes.filter(note => note.id !== noteToDelete));
+      setToastMessage('Note deleted successfully!');
+      setToastVariant('success');
+      setShowToast(true);
     }
+    setShowDeleteModal(false);
+    setNoteToDelete(null);
   };
 
   const handleSaveNote = () => {
     const currentDate = new Date().toISOString().split('T')[0];
-    
+
     if (editingNote) {
       // Update existing note
-      setNotes(notes.map(note => 
+      setNotes(notes.map(note =>
         note.id === editingNote.id
           ? { ...note, ...formData, updatedAt: currentDate }
           : note
       ));
+      setToastMessage('Note updated successfully!');
     } else {
       // Add new note
       const newNote: Note = {
@@ -83,13 +99,14 @@ const EmpNotes: React.FC = () => {
         updatedAt: currentDate
       };
       setNotes([newNote, ...notes]);
+      setToastMessage('Note added successfully!');
     }
     
+    setToastVariant('success');
+    setShowToast(true);
     setShowModal(false);
     setFormData({ title: '', content: '' });
-  };
-
-  return (
+  };  return (
     <>
       <Card className="notes-card">
         <Card.Body>
@@ -111,44 +128,46 @@ const EmpNotes: React.FC = () => {
               <p>No notes yet. Click "Add Note" to create one.</p>
             </div>
           ) : (
-            <ListGroup variant="flush" className="notes-list">
+            <Row className="notes-grid">
               {notes.map((note) => (
-                <ListGroup.Item key={note.id} className="note-item">
-                  <div className="note-header">
-                    <div className="note-title-section">
-                      <h6 className="note-item-title">{note.title}</h6>
-                    </div>
-                    <div className="note-actions">
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="note-action-btn me-2"
-                        onClick={() => handleEditNote(note)}
-                      >
-                        <FiEdit2 />
-                      </Button>
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        className="note-action-btn"
-                        onClick={() => handleDeleteNote(note.id)}
-                      >
-                        <FiTrash2 />
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="note-content">{note.content}</p>
-                  <div className="note-footer">
-                    <small className="text-muted">
-                      Created: {note.createdAt}
-                      {note.updatedAt !== note.createdAt && (
-                        <> | Updated: {note.updatedAt}</>
-                      )}
-                    </small>
-                  </div>
-                </ListGroup.Item>
+                <Col key={note.id} xs={12} sm={6} md={4} lg={3} className="mb-3">
+                  <Card className="note-card h-100">
+                    <Card.Body className="d-flex flex-column">
+                      <div className="note-icon-wrapper mb-3">
+                        <FiFileText className="note-icon" />
+                      </div>
+                      <h6 className="note-card-title mb-2">{note.title}</h6>
+                      <p className="note-card-content flex-grow-1">{note.content}</p>
+                      <div className="note-card-footer mt-auto">
+                        <small className="text-muted d-block mb-2">
+                          {note.createdAt}
+                        </small>
+                        <div className="note-card-actions">
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="p-0 me-3"
+                            onClick={() => handleEditNote(note)}
+                            title="Edit note"
+                          >
+                            <FiEdit2 size={16} />
+                          </Button>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="p-0 text-danger"
+                            onClick={() => handleDeleteNote(note.id)}
+                            title="Delete note"
+                          >
+                            <FiTrash2 size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
               ))}
-            </ListGroup>
+            </Row>
           )}
         </Card.Body>
       </Card>
@@ -201,6 +220,43 @@ const EmpNotes: React.FC = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Delete</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to delete this note? This action cannot be undone.</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDelete}>
+            Delete
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Toast Notification */}
+      <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
+        <Toast 
+          show={showToast} 
+          onClose={() => setShowToast(false)} 
+          delay={3000} 
+          autohide
+          bg={toastVariant}
+        >
+          <Toast.Header>
+            <FiCheck className="me-2" />
+            <strong className="me-auto">Success</strong>
+          </Toast.Header>
+          <Toast.Body className="text-white">
+            {toastMessage}
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
     </>
   );
 };

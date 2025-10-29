@@ -7,13 +7,13 @@ import MyCalendar from './components/Calendar/MyCalendar';
 import EmployeeDashboard from './components/Dashboard/EmployeeDashboad' ;
 import EmployeeAppoinment from './components/Dashboard/EmployeeAppoinment';
 import EmployeeAppoinmentDetails from './components/Dashboard/EmployeeAppoinmentDetails'; 
+import EmpNotes from './components/Dashboard/EmpNotes';
 
 const App: React.FC = () => {
   return (
     <Router>
       <div className="d-flex" style={{ height: '100vh', backgroundColor: '#f8f9fa' }}>
         <Sidemenu />
-        
         <main className="flex-fill overflow-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -22,7 +22,8 @@ const App: React.FC = () => {
             <Route path="/my-calendar" element={<MyCalendar />} />
             <Route path='/employeedashboard' element={<EmployeeDashboard/>}/>
             <Route path='/employeeappointment' element={<EmployeeAppoinment/>}/>
-            <Route path='/employeeappointment/${appointmentId}' element={<EmployeeAppoinmentDetails/>}/>
+            <Route path='/empnotes' element={<EmpNotes/>}/>
+            <Route path='/employeeappointment/:appointmentId' element={<EmployeeAppoinmentDetails/>}/>
           </Routes>
         </main>
       </div>

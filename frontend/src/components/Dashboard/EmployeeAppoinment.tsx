@@ -1,7 +1,6 @@
 import React from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import EmpAppoinmentAll from './EmpAppoinmentAll.tsx';
-import EmpNotes from './EmpNotes';
 import './EmployeeAppoinment.css';
 
 const EmployeeAppoinment: React.FC = () => {
@@ -16,13 +15,7 @@ const EmployeeAppoinment: React.FC = () => {
             <EmpAppoinmentAll />
           </Col>
         </Row>
-
-        {/* Notes Section */}
-        <Row>
-          <Col xs={12}>
-            <EmpNotes />
-          </Col>
-        </Row>
+        
       </Container>
     </div>
   );
