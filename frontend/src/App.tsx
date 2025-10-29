@@ -14,6 +14,7 @@ const App: React.FC = () => {
     <Router>
       <div className="d-flex" style={{ height: '100vh', backgroundColor: '#f8f9fa' }}>
         <Sidemenu />
+        
         <main className="flex-fill overflow-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
