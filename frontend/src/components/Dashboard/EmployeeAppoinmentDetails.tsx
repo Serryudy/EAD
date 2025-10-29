@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Badge, Button, Form, Modal, Toast, ToastContainer } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiPhone, FiMail, FiCalendar, FiClock, FiDollarSign, FiEdit2, FiCheck } from 'react-icons/fi';
+import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiDollarSign, FiEdit2, FiCheck } from 'react-icons/fi';
 import { BsFillCarFrontFill } from 'react-icons/bs';
 import './EmployeeAppoinmentDetails.css';
 
@@ -56,6 +56,7 @@ const EmployeeAppoinmentDetails: React.FC = () => {
   const [newDate, setNewDate] = useState<string>(appointment.date);
   const [newTime, setNewTime] = useState<string>(appointment.time);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [showStatusConfirmModal, setShowStatusConfirmModal] = useState<boolean>(false);
   const [isEditingCharge, setIsEditingCharge] = useState<boolean>(false);
   const [newCharge, setNewCharge] = useState<number>(appointment.serviceCharge);
   const [showToast, setShowToast] = useState(false);
@@ -64,14 +65,25 @@ const EmployeeAppoinmentDetails: React.FC = () => {
     window.location.href = `tel:${appointment.customerPhone}`;
   };
 
-  const handleEmailCustomer = (): void => {
-    window.location.href = `mailto:${appointment.customerEmail}`;
+  const handleUpdateStatus = (): void => {
+    if (newStatus === 'cancelled') {
+      // Show confirmation modal for cancelled status
+      setShowStatusConfirmModal(true);
+    } else {
+      // Update status directly for other statuses
+      setAppointment({ ...appointment, status: newStatus });
+      setIsEditingStatus(false);
+      setToastMessage('Status updated successfully!');
+      setToastVariant('success');
+      setShowToast(true);
+    }
   };
 
-  const handleUpdateStatus = (): void => {
+  const confirmStatusChange = (): void => {
     setAppointment({ ...appointment, status: newStatus });
     setIsEditingStatus(false);
-    setToastMessage('Status updated successfully!');
+    setShowStatusConfirmModal(false);
+    setToastMessage('Status updated and customer will be notified!');
     setToastVariant('success');
     setShowToast(true);
   };
@@ -127,8 +139,7 @@ const EmployeeAppoinmentDetails: React.FC = () => {
       <div className="details-header">
         <div className="header-left">
           <Button variant="outline-secondary" className="back-btn" onClick={() => navigate(-1)}>
-            <FiArrowLeft className="me-2" />
-            Back
+            <FiArrowLeft className="me-1" />
           </Button>
           <h4 className="details-title">Appointment Details</h4>
         </div>
@@ -147,23 +158,14 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h5 className="card-section-title">Customer Information</h5>
                   <div className="contact-buttons">
-                    <Button 
-                      variant="success" 
-                      size="sm" 
-                      className="me-2 contact-btn"
+                    <Button
+                      variant="success"
+                      size="sm"
+                      className="contact-btn"
                       onClick={handleCallCustomer}
                     >
                       <FiPhone className="me-1" />
                       Call
-                    </Button>
-                    <Button 
-                      variant="primary" 
-                      size="sm"
-                      className="contact-btn"
-                      onClick={handleEmailCustomer}
-                    >
-                      <FiMail className="me-1" />
-                      Email
                     </Button>
                   </div>
                 </div>
@@ -176,10 +178,6 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                   <div className="info-item">
                     <label>Phone:</label>
                     <strong>{appointment.customerPhone}</strong>
-                  </div>
-                  <div className="info-item">
-                    <label>Email:</label>
-                    <strong>{appointment.customerEmail}</strong>
                   </div>
                 </div>
               </Card.Body>
@@ -199,18 +197,64 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                     <strong>{appointment.vehicleNumber}</strong>
                   </div>
                   <div className="info-item">
-                    <label>Make & Model:</label>
-                    <strong>{appointment.vehicleMake} {appointment.vehicleModel}</strong>
-                  </div>
-                  <div className="info-item">
-                    <label>Year:</label>
-                    <strong>{appointment.vehicleYear}</strong>
-                  </div>
-                  <div className="info-item">
-                    <label>Type:</label>
-                    <strong>{appointment.vehicleType}</strong>
+                    <label>Vehicle Type:</label>
+                    <strong>{appointment.vehicleMake} {appointment.vehicleModel} ({appointment.vehicleYear})</strong>
                   </div>
                 </div>
+              </Card.Body>
+            </Card>
+
+            {/* Status Management */}
+            <Card className="detail-card mt-4">
+              <Card.Body>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="card-section-title mb-0">Status Management</h5>
+                  {!isEditingStatus && (
+                    <Button 
+                      variant="outline-primary" 
+                      size="sm"
+                      onClick={() => setIsEditingStatus(true)}
+                    >
+                      Edit Status
+                    </Button>
+                  )}
+                </div>
+
+                {isEditingStatus ? (
+                  <div className="d-flex gap-2 align-items-center">
+                    <Form.Select
+                      id="status-update"
+                      value={newStatus}
+                      onChange={(e) => setNewStatus(e.target.value as AppointmentStatus)}
+                      aria-label="Update appointment status"
+                      style={{ width: 'auto', flex: '1' }}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="in-service">In Service</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </Form.Select>
+                    <Button variant="primary" size="sm" onClick={handleUpdateStatus}>
+                      Save
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setIsEditingStatus(false);
+                        setNewStatus(appointment.status);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="info-item d-flex align-items-center gap-2">
+                    <label className="mb-0">Current Status:</label>
+                    {getStatusBadge(appointment.status)}
+                  </div>
+                )}
               </Card.Body>
             </Card>
           </Col>
@@ -242,8 +286,9 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={newCharge}
+                          value={newCharge === 0 ? '' : newCharge}
                           onChange={(e) => setNewCharge(parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
                           style={{ width: '150px' }}
                         />
                         <Button variant="success" size="sm" onClick={handleSaveCharge}>
@@ -351,72 +396,7 @@ const EmployeeAppoinmentDetails: React.FC = () => {
               </Card.Body>
             </Card>
 
-            {/* Status Management */}
-            <Card className="detail-card mt-4">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="card-section-title mb-0">Status Management</h5>
-                  {!isEditingStatus && (
-                    <Button 
-                      variant="outline-primary" 
-                      size="sm"
-                      onClick={() => setIsEditingStatus(true)}
-                    >
-                      Edit Status
-                    </Button>
-                  )}
-                </div>
-
-                {isEditingStatus ? (
-                  <div>
-                    <Form.Group className="mb-3">
-                      <Form.Label htmlFor="status-update">Update Status</Form.Label>
-                      <Form.Select
-                        id="status-update"
-                        value={newStatus}
-                        onChange={(e) => setNewStatus(e.target.value as AppointmentStatus)}
-                        aria-label="Update appointment status"
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="in-service">In Service</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                      </Form.Select>
-                    </Form.Group>
-                    <div className="d-flex gap-2">
-                      <Button variant="primary" onClick={handleUpdateStatus}>
-                        Save Status
-                      </Button>
-                      <Button 
-                        variant="secondary" 
-                        onClick={() => {
-                          setIsEditingStatus(false);
-                          setNewStatus(appointment.status);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="info-item">
-                    <label>Current Status:</label>
-                    {getStatusBadge(appointment.status)}
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-
-            {/* Additional Notes */}
-            {appointment.notes && (
-              <Card className="detail-card mt-4">
-                <Card.Body>
-                  <h5 className="card-section-title mb-3">Additional Notes</h5>
-                  <p className="notes-text">{appointment.notes}</p>
-                </Card.Body>
-              </Card>
-            )}
+            
           </Col>
         </Row>
       </Container>
@@ -442,6 +422,27 @@ const EmployeeAppoinmentDetails: React.FC = () => {
           </Button>
           <Button variant="primary" onClick={confirmScheduleChange}>
             Yes, Save & Notify Customer
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Confirmation Modal for Status Change to Cancelled */}
+      <Modal show={showStatusConfirmModal} onHide={() => setShowStatusConfirmModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Status Change</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>You are about to change the appointment status to <strong>Cancelled</strong>.</p>
+          <p className="text-primary fw-bold mt-3">
+            Will you inform the customer about this change?
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowStatusConfirmModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmStatusChange}>
+            Yes, Cancel Appointment & Notify Customer
           </Button>
         </Modal.Footer>
       </Modal>
