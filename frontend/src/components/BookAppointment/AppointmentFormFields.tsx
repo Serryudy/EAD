@@ -1,18 +1,17 @@
 import React from 'react';
 import { Card, Form, Button, Row, Col } from 'react-bootstrap';
-import { FaCar, FaWrench, FaCalendarAlt, FaClock, FaStickyNote, FaSave, FaArrowRight } from 'react-icons/fa';
-
-interface AppointmentFormData {
-  vehicle: string;
-  serviceType: string;
-  preferredDate: string;
-  timeWindow: string;
-  additionalNotes: string;
-}
 
 interface AppointmentFormFieldsProps {
-  formData: AppointmentFormData;
-  onVehicleChange: (value: string) => void;
+  formData: {
+    vehicleNo: string;
+    vehicleType: string;
+    serviceType: string;
+    preferredDate: string;
+    timeWindow: string;
+    additionalNotes: string;
+  };
+  onVehicleNoChange: (value: string) => void;
+  onVehicleTypeChange: (value: string) => void;
   onServiceTypeChange: (value: string) => void;
   onDateChange: (value: string) => void;
   onTimeWindowChange: (value: string) => void;
@@ -23,227 +22,134 @@ interface AppointmentFormFieldsProps {
 
 const AppointmentFormFields: React.FC<AppointmentFormFieldsProps> = ({
   formData,
-  onVehicleChange,
+  onVehicleNoChange,
+  onVehicleTypeChange,
   onServiceTypeChange,
   onDateChange,
   onTimeWindowChange,
   onNotesChange,
-  onSaveDraft,
   onContinue
 }) => {
-  return (
-    <Card 
-      className="shadow-sm border-0"
-      style={{ 
-        borderRadius: '16px',
-        background: 'linear-gradient(to bottom, #f3f4f6, #ffffff)'
-      }}
-    >
-      <Card.Body className="p-4">
-        <h5 className="mb-4 fw-semibold" style={{ fontSize: '1.25rem' }}>
-          Select Vehicle & Service
-        </h5>
+  // Check if all required fields are filled
+  const isFormValid = 
+    formData.vehicleNo.trim() !== '' &&
+    formData.vehicleType.trim() !== '' &&
+    formData.serviceType.trim() !== '' &&
+    formData.preferredDate.trim() !== '' &&
+    formData.timeWindow.trim() !== '';
 
-        <Row className="g-4">
-          {/* Vehicle */}
-          <Col md={6}>
-            <Form.Group>
-              <Form.Label className="text-muted small fw-medium mb-2">
-                Vehicle
-              </Form.Label>
-              <div className="position-relative">
-                <FaCar
-                  className="position-absolute text-muted"
-                  style={{
-                    left: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'none'
-                  }}
-                />
+  return (
+    <Card className="border-0 shadow-sm">
+      <Card.Body className="p-4">
+        <h5 className="mb-4 fw-semibold">Appointment Details</h5>
+        
+        <Form>
+          {/* Vehicle Information */}
+          <Row className="mb-3">
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>
+                  Vehicle No <span className="text-danger">*</span>
+                </Form.Label>
                 <Form.Control
                   type="text"
-                  value={formData.vehicle}
-                  onChange={(e) => onVehicleChange(e.target.value)}
-                  style={{
-                    paddingLeft: '2.5rem',
-                    height: '48px',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                    backgroundColor: 'white'
-                  }}
+                  placeholder="e.g., AB12 XYZ"
+                  value={formData.vehicleNo}
+                  onChange={(e) => onVehicleNoChange(e.target.value)}
+                  required
                 />
-              </div>
-            </Form.Group>
-          </Col>
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>
+                  Vehicle Type <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="e.g., Toyota Corolla (2019)"
+                  value={formData.vehicleType}
+                  onChange={(e) => onVehicleTypeChange(e.target.value)}
+                  required
+                />
+              </Form.Group>
+            </Col>
+          </Row>
 
           {/* Service Type */}
-          <Col md={6}>
-            <Form.Group>
-              <Form.Label className="text-muted small fw-medium mb-2">
-                Service Type
-              </Form.Label>
-              <div className="position-relative">
-                <FaWrench
-                  className="position-absolute text-muted"
-                  style={{
-                    left: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'none'
-                  }}
-                />
-                <Form.Select
-                  value={formData.serviceType}
-                  onChange={(e) => onServiceTypeChange(e.target.value)}
-                  style={{
-                    paddingLeft: '2.5rem',
-                    height: '48px',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                    backgroundColor: 'white'
-                  }}
-                >
-                  <option value="Periodic Maintenance">Periodic Maintenance</option>
-                  <option value="Oil Change">Oil Change</option>
-                  <option value="Tire Rotation">Tire Rotation</option>
-                  <option value="Brake Inspection">Brake Inspection</option>
-                  <option value="Full Service">Full Service</option>
-                </Form.Select>
-              </div>
-            </Form.Group>
-          </Col>
+          <Form.Group className="mb-3">
+            <Form.Label>
+              Service Type <span className="text-danger">*</span>
+            </Form.Label>
+            <Form.Select
+              value={formData.serviceType}
+              onChange={(e) => onServiceTypeChange(e.target.value)}
+              required
+            >
+              <option value="">Select service type</option>
+              <option value="Periodic Maintenance">Periodic Maintenance</option>
+              <option value="Oil Change">Oil Change</option>
+              <option value="Brake Service">Brake Service</option>
+              <option value="Tire Rotation">Tire Rotation</option>
+              <option value="Engine Diagnostics">Engine Diagnostics</option>
+            </Form.Select>
+          </Form.Group>
 
           {/* Preferred Date */}
-          <Col md={6}>
-            <Form.Group>
-              <Form.Label className="text-muted small fw-medium mb-2">
-                Preferred Date
-              </Form.Label>
-              <div className="position-relative">
-                <FaCalendarAlt
-                  className="position-absolute text-muted"
-                  style={{
-                    left: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'none'
-                  }}
-                />
-                <Form.Control
-                  type="date"
-                  value={formData.preferredDate}
-                  onChange={(e) => onDateChange(e.target.value)}
-                  style={{
-                    paddingLeft: '2.5rem',
-                    height: '48px',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                    backgroundColor: 'white'
-                  }}
-                />
-              </div>
-            </Form.Group>
-          </Col>
+          <Form.Group className="mb-3">
+            <Form.Label>
+              Preferred Date <span className="text-danger">*</span>
+            </Form.Label>
+            <Form.Control
+              type="date"
+              value={formData.preferredDate}
+              onChange={(e) => onDateChange(e.target.value)}
+              required
+            />
+          </Form.Group>
 
           {/* Time Window */}
-          <Col md={6}>
-            <Form.Group>
-              <Form.Label className="text-muted small fw-medium mb-2">
-                Time Window
-              </Form.Label>
-              <div className="position-relative">
-                <FaClock
-                  className="position-absolute text-muted"
-                  style={{
-                    left: '1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    pointerEvents: 'none'
-                  }}
-                />
-                <Form.Control
-                  type="text"
-                  value={formData.timeWindow}
-                  onChange={(e) => onTimeWindowChange(e.target.value)}
-                  style={{
-                    paddingLeft: '2.5rem',
-                    height: '48px',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                    backgroundColor: 'white'
-                  }}
-                />
-              </div>
-            </Form.Group>
-          </Col>
+          <Form.Group className="mb-3">
+            <Form.Label>
+              Time Window <span className="text-danger">*</span>
+            </Form.Label>
+            <Form.Select
+              value={formData.timeWindow}
+              onChange={(e) => onTimeWindowChange(e.target.value)}
+              required
+            >
+              <option value="">Select time window</option>
+              <option value="09:00 AM - 11:00 AM">09:00 AM - 11:00 AM</option>
+              <option value="11:00 AM - 01:00 PM">11:00 AM - 01:00 PM</option>
+              <option value="01:00 PM - 03:00 PM">01:00 PM - 03:00 PM</option>
+              <option value="03:00 PM - 05:00 PM">03:00 PM - 05:00 PM</option>
+            </Form.Select>
+          </Form.Group>
 
           {/* Additional Notes */}
-          <Col xs={12}>
-            <Form.Group>
-              <Form.Label className="text-muted small fw-medium mb-2">
-                Additional Notes
-              </Form.Label>
-              <div className="position-relative">
-                <FaStickyNote
-                  className="position-absolute text-muted"
-                  style={{
-                    left: '1rem',
-                    top: '1rem',
-                    pointerEvents: 'none'
-                  }}
-                />
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  value={formData.additionalNotes}
-                  onChange={(e) => onNotesChange(e.target.value)}
-                  placeholder="Describe any issues or requests..."
-                  style={{
-                    paddingLeft: '2.5rem',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e7eb',
-                    backgroundColor: 'white',
-                    resize: 'none'
-                  }}
-                />
-              </div>
-            </Form.Group>
-          </Col>
-        </Row>
+          <Form.Group className="mb-4">
+            <Form.Label>Additional Notes (Optional)</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              placeholder="Any special requirements or notes..."
+              value={formData.additionalNotes}
+              onChange={(e) => onNotesChange(e.target.value)}
+            />
+          </Form.Group>
 
-        {/* Action Buttons */}
-        <div className="d-flex justify-content-end mt-4" style={{ gap: '1rem' }}>
-          <Button
-            variant="outline-secondary"
-            onClick={onSaveDraft}
-            className="d-flex align-items-center"
-            style={{
-              gap: '0.5rem',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '8px',
-              border: '1px solid #d1d5db'
-            }}
-          >
-            <FaSave size={16} />
-            Save Draft
-          </Button>
-          <Button
-            variant="primary"
-            onClick={onContinue}
-            className="d-flex align-items-center"
-            style={{
-              gap: '0.5rem',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '8px',
-              backgroundColor: '#38bdf8',
-              border: 'none'
-            }}
-          >
-            Continue
-            <FaArrowRight size={16} />
-          </Button>
-        </div>
+          {/* Action Buttons */}
+          <div className="d-flex gap-3">
+            <Button
+              variant="primary"
+              onClick={onContinue}
+              disabled={!isFormValid}
+              className="d-flex align-items-center gap-2 ms-auto"
+            >
+              Continue to Payment
+            </Button>
+          </div>
+        </Form>
       </Card.Body>
     </Card>
   );

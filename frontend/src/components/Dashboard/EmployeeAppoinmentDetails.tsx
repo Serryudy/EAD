@@ -193,7 +193,7 @@ const EmployeeAppoinmentDetails: React.FC = () => {
 
                 <div className="info-group">
                   <div className="info-item">
-                    <label>License Plate:</label>
+                    <label>Vehicle No:</label>
                     <strong>{appointment.vehicleNumber}</strong>
                   </div>
                   <div className="info-item">
@@ -272,7 +272,7 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                     <strong>{appointment.service}</strong>
                   </div>
                   <div className="info-item">
-                    <label>Description:</label>
+                    <label>Additional Notes:</label>
                     <p className="service-description">{appointment.serviceDescription}</p>
                   </div>
                   <div className="info-item">
