@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Badge, Button, Form, Modal, Toast, ToastContainer } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiDollarSign, FiEdit2, FiCheck } from 'react-icons/fi';
+import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiEdit2, FiCheck } from 'react-icons/fi';
 import { BsFillCarFrontFill } from 'react-icons/bs';
 import './EmployeeAppoinmentDetails.css';
 
@@ -22,7 +22,6 @@ interface AppointmentDetails {
   status: AppointmentStatus;
   service: string;
   serviceDescription: string;
-  serviceCharge: number;
   notes: string;
 }
 
@@ -46,7 +45,6 @@ const EmployeeAppoinmentDetails: React.FC = () => {
     status: 'pending',
     service: 'Oil Change',
     serviceDescription: 'Full synthetic oil change with filter replacement. Includes multi-point inspection.',  
-    serviceCharge: 0,
     notes: 'Customer requested Mobil 1 synthetic oil.'
   });
 
@@ -57,8 +55,6 @@ const EmployeeAppoinmentDetails: React.FC = () => {
   const [newTime, setNewTime] = useState<string>(appointment.time);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [showStatusConfirmModal, setShowStatusConfirmModal] = useState<boolean>(false);
-  const [isEditingCharge, setIsEditingCharge] = useState<boolean>(false);
-  const [newCharge, setNewCharge] = useState<number>(appointment.serviceCharge);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastVariant, setToastVariant] = useState<'success' | 'danger'>('success');  const handleCallCustomer = (): void => {
@@ -104,19 +100,6 @@ const EmployeeAppoinmentDetails: React.FC = () => {
     setIsEditingSchedule(false);
     setShowConfirmModal(false);
     setToastMessage('Schedule updated and customer will be notified!');
-    setToastVariant('success');
-    setShowToast(true);
-  };
-
-  const handleEditCharge = (): void => {
-    setNewCharge(appointment.serviceCharge);
-    setIsEditingCharge(true);
-  };
-
-  const handleSaveCharge = (): void => {
-    setAppointment({ ...appointment, serviceCharge: newCharge });
-    setIsEditingCharge(false);
-    setToastMessage('Service charge updated successfully!');
     setToastVariant('success');
     setShowToast(true);
   };
@@ -272,51 +255,8 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                     <strong>{appointment.service}</strong>
                   </div>
                   <div className="info-item">
-                    <label>Additional Notes:</label>
+                    <label>Description:</label>
                     <p className="service-description">{appointment.serviceDescription}</p>
-                  </div>
-                  <div className="info-item">
-                    <label>
-                      <FiDollarSign className="me-1" />
-                      Service Charge:
-                    </label>
-                    {isEditingCharge ? (
-                      <div className="d-flex gap-2 align-items-center mt-2">
-                        <Form.Control
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={newCharge === 0 ? '' : newCharge}
-                          onChange={(e) => setNewCharge(parseFloat(e.target.value) || 0)}
-                          placeholder="0.00"
-                          style={{ width: '150px' }}
-                        />
-                        <Button variant="success" size="sm" onClick={handleSaveCharge}>
-                          Save
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setIsEditingCharge(false)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="d-flex align-items-center gap-2">
-                        <strong className="cost-amount">
-                          ${appointment.serviceCharge.toFixed(2)}
-                        </strong>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={handleEditCharge}
-                        >
-                          <FiEdit2 className="me-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </div>
               </Card.Body>
@@ -395,8 +335,6 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                 )}
               </Card.Body>
             </Card>
-
-            
           </Col>
         </Row>
       </Container>
