@@ -53,7 +53,7 @@ const AppointmentFormFields: React.FC<AppointmentFormFieldsProps> = ({
                 </Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="e.g., AB12 XYZ"
+                  placeholder="e.g., ABC-1234"
                   value={formData.vehicleNo}
                   onChange={(e) => onVehicleNoChange(e.target.value)}
                   required
