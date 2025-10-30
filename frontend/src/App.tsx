@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './hooks/useAuth';
@@ -6,7 +6,15 @@ import LoginPage from './Auth/LoginPage';
 import EmployeeLoginPage from './Auth/EmployeeLoginPage';
 import EmployeeRegistrationPage from './Auth/EmployeeRegistrationPage';
 import CustomerRegistrationPage from './Auth/CustomerRegistrationPage';
-import './App.css'
+import Sidemenu from './components/Sidemenu';
+import Dashboard from './components/Dashboard/Dashboard';
+import BookAppointmentForm from './components/BookAppointment/BookAppointmentForm';
+import MyCalendar from './components/Calendar/MyCalendar';
+import EmployeeDashboard from './components/Dashboard/EmployeeDashboad';
+import EmployeeAppoinment from './components/Dashboard/EmployeeAppoinment';
+import EmployeeAppoinmentDetails from './components/Dashboard/EmployeeAppoinmentDetails';
+import EmpNotes from './components/Dashboard/EmpNotes';
+import './App.css';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,63 +31,24 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
-// Dashboard Component (placeholder)
-const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
-
+// Main Layout Component with Sidemenu
+const MainLayout: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Welcome, {user?.name}!
-            </h1>
-            <button
-              onClick={logout}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">User Info</h3>
-              <p><strong>Role:</strong> {user?.role}</p>
-              {user?.role === 'employee' && (
-                <>
-                  <p><strong>Employee ID:</strong> {user?.employeeId}</p>
-                  {user?.department && <p><strong>Department:</strong> {user?.department}</p>}
-                  {user?.position && <p><strong>Position:</strong> {user?.position}</p>}
-                </>
-              )}
-              {user?.role === 'customer' && (
-                <p><strong>Mobile:</strong> {user?.mobile}</p>
-              )}
-            </div>
-            
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-green-900 mb-2">Quick Actions</h3>
-              {user?.role === 'employee' ? (
-                <ul className="space-y-2">
-                  <li>• Manage Appointments</li>
-                  <li>• View Job Cards</li>
-                  <li>• Update Service Logs</li>
-                  <li>• Customer Management</li>
-                </ul>
-              ) : (
-                <ul className="space-y-2">
-                  <li>• Book New Service</li>
-                  <li>• Track Service Status</li>
-                  <li>• Reschedule Appointments</li>
-                  <li>• View Service History</li>
-                </ul>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="d-flex" style={{ height: '100vh', backgroundColor: '#f8f9fa' }}>
+      <Sidemenu />
+      
+      <main className="flex-fill overflow-auto">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/book-appointment" element={<BookAppointmentForm />} />
+          <Route path="/my-calendar" element={<MyCalendar />} />
+          <Route path="/employeedashboard" element={<EmployeeDashboard />} />
+          <Route path="/employeeappointment" element={<EmployeeAppoinment />} />
+          <Route path="/empnotes" element={<EmpNotes />} />
+          <Route path="/employeeappointment/:appointmentId" element={<EmployeeAppoinmentDetails />} />
+        </Routes>
+      </main>
     </div>
   );
 };
@@ -104,27 +73,29 @@ const AuthRoutes: React.FC = () => {
 };
 
 // Main App Component
-function App() {
+const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
         <div className="App">
           <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route 
-              path="/dashboard" 
+            <Route path="/login" element={<AuthRoutes />} />
+            <Route path="/register" element={<AuthRoutes />} />
+            <Route path="/employee/login" element={<AuthRoutes />} />
+            <Route path="/employee/register" element={<AuthRoutes />} />
+            <Route
+              path="/*"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <MainLayout />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route path="/*" element={<AuthRoutes />} />
           </Routes>
         </div>
       </Router>
     </AuthProvider>
-  )
-}
+  );
+};
 
-export default App
+export default App;
