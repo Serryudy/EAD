@@ -155,7 +155,7 @@ const EmployeeLoginPage = () => {
         <div className="border-t border-white/30 my-6"></div>
 
         {/* SSO Option */}
-        <div>
+        {/* <div>
           <p className="text-gray-600 text-sm mb-3">Use company SSO</p>
           <button
             onClick={handleSSO}
@@ -165,7 +165,7 @@ const EmployeeLoginPage = () => {
             <span>⚡</span>
             Continue
           </button>
-        </div>
+        </div> */}
 
         {/* Footer Notice */}
         <p className="text-xs text-gray-500 text-center mt-6">
@@ -190,7 +190,7 @@ const EmployeeLoginPage = () => {
               Register
             </a>
           </p>
-          <p className="text-sm text-gray-600">
+          {/* <p className="text-sm text-gray-600">
             Need to register a new employee?{' '}
             <a 
               href="/employee/register" 
@@ -198,7 +198,7 @@ const EmployeeLoginPage = () => {
             >
               Employee Registration
             </a>
-          </p>
+          </p> */}
         </div>
       </div>
     </div>
