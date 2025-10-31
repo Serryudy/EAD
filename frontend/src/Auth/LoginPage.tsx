@@ -91,160 +91,147 @@ const AutoServiceLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#CFCFCF]" >
-        {/* Animated Background */}
-      <div >
-        <div className="absolute top-20 left-20 w-64 h-64 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-64 h-64 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
-        <div className="absolute bottom-20 left-1/3 w-64 h-64 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
-        <div className="absolute bottom-40 right-1/3 w-48 h-48 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-pulse animation-delay-6000"></div>
-      </div>
-      {/* Glass morphism card */}
-      <div className="bg-white/20 backdrop-blur-lg rounded-3xl p-8 w-full max-w-2xl shadow-2xl border border-white">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <div className="w-4 h-4 border-2 border-white rounded-full"></div>
-            </div>
-            <h1 className="text-xl font-semibold text-gray-800">AutoService</h1>
-          </div>
-          <span className="bg-white/80 text-gray-600 px-4 py-2 rounded-full text-sm font-medium">
-            Secure Login
-          </span>
-        </div>
+    <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+      <div className="container">
+        <div className="row justify-content-center">
+          <div className="col-md-8 col-lg-6">
+            <div className="card shadow-lg border-0">
+              <div className="card-body p-5">
+                {/* Header */}
+                <div className="text-center mb-4">
+                  <div className="d-flex align-items-center justify-content-center gap-2 mb-3">
+                    <div className="bg-primary rounded p-2">
+                      <div style={{ width: '24px', height: '24px', border: '2px solid white', borderRadius: '50%' }}></div>
+                    </div>
+                    <h2 className="mb-0 fw-bold">AutoService</h2>
+                  </div>
+                  <p className="text-muted mb-2">Customer Login</p>
+                  <small className="text-muted">Customer access for booking, tracking, and rescheduling</small>
+                  {isOtpSent && maskedMobile && (
+                    <div className="alert alert-info mt-3 mb-0 py-2">
+                      <small>OTP sent to {maskedMobile}</small>
+                    </div>
+                  )}
+                </div>
 
-        {/* Subtitle */}
-        <p className="text-gray-600 text-center mb-8 text-sm">
-          Customer access for booking, tracking, and rescheduling
-          {isOtpSent && maskedMobile && (
-            <span className="block mt-1 text-blue-600">
-              OTP sent to {maskedMobile}
-            </span>
-          )}
-        </p>
+                {/* Error Message */}
+                {error && (
+                  <div className="alert alert-danger d-flex align-items-center" role="alert">
+                    <AlertCircle size={18} className="me-2" />
+                    <span>{error}</span>
+                  </div>
+                )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="flex items-center gap-2 p-3 mb-6 bg-red-100/80 border border-red-200 text-red-700 rounded-xl text-sm">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+                {/* Form */}
+                <div className="mb-4">
+                  <div className="row g-3 mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label">Full Name</label>
+                      <div className="input-group">
+                        <span className="input-group-text bg-white">
+                          <User size={18} className="text-muted" />
+                        </span>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder="John Doe"
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Mobile Number</label>
+                      <div className="input-group">
+                        <span className="input-group-text bg-white">
+                          <Phone size={18} className="text-muted" />
+                        </span>
+                        <input
+                          type="tel"
+                          className="form-control"
+                          value={mobileNumber}
+                          onChange={(e) => setMobileNumber(e.target.value)}
+                          placeholder="+94 71 960 6645"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-        {/* Form Fields */}
-        <div className="space-y-4 mb-6">
-          {/* Full Name and Mobile Number Row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-600 text-sm mb-2">Full Name</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/90 rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
-                  placeholder="John Doe"
-                />
+                  <div className="d-flex justify-content-end">
+                    <button
+                      onClick={handleSendOtp}
+                      disabled={isLoading}
+                      className="btn btn-primary d-flex align-items-center gap-2"
+                    >
+                      <Send size={16} />
+                      {isLoading ? 'Sending...' : 'Send OTP'}
+                    </button>
+                  </div>
+                </div>
+
+                <hr className="my-4" />
+
+                {/* OTP Section */}
+                <div className="mb-4">
+                  <label className="form-label">Enter OTP</label>
+                  <div className="input-group mb-3">
+                    <span className="input-group-text bg-white">
+                      <Lock size={18} className="text-muted" />
+                    </span>
+                    <input
+                      type="text"
+                      className="form-control text-center fs-5 letter-spacing"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="• • • • • •"
+                      maxLength={6}
+                      style={{ letterSpacing: '0.5rem' }}
+                    />
+                  </div>
+                  
+                  <div className="d-flex gap-2">
+                    <button
+                      onClick={handleResendOtp}
+                      disabled={isLoading || !isOtpSent}
+                      className="btn btn-outline-secondary flex-fill d-flex align-items-center justify-content-center gap-2"
+                    >
+                      <RotateCcw size={16} />
+                      Resend
+                    </button>
+                    
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isLoading || !otp.trim()}
+                      className="btn btn-dark flex-fill d-flex align-items-center justify-content-center gap-2"
+                    >
+                      <Lock size={16} />
+                      {isLoading ? 'Verifying...' : 'Submit'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="text-center mt-4">
+                  <small className="text-muted">
+                    By continuing, you agree to our <a href="#" className="text-decoration-none">Terms</a> and acknowledge the <a href="#" className="text-decoration-none">Privacy Policy</a>
+                  </small>
+                </div>
+
+                <hr className="my-3" />
+
+                {/* Links */}
+                <div className="text-center">
+                  <small className="text-muted">
+                    Don't have an account? <a href="/register" className="text-decoration-none fw-semibold">Customer Registration</a>
+                  </small>
+                  <br />
+                  <small className="text-muted">
+                    Are you an employee? <a href="/employee/login" className="text-decoration-none fw-semibold">Employee Login</a>
+                  </small>
+                </div>
               </div>
             </div>
-            <div>
-              <label className="block text-gray-600 text-sm mb-2">Mobile Number</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="tel"
-                  value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/90 rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
-                  placeholder="+94 71 960 6645"
-                />
-              </div>
-            </div>
           </div>
-
-          {/* Send OTP Button */}
-          <div className="flex justify-end">
-            <button
-              onClick={handleSendOtp}
-              disabled={isLoading}
-              className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
-            >
-              <Send className="w-4 h-4" />
-              Send OTP
-            </button>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-white/30 mb-6"></div>
-
-        {/* OTP Section */}
-        <div className="mb-6">
-          <label className="block text-gray-600 text-sm mb-2">Enter OTP</label>
-          <div className="relative mb-4">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="w-full pl-10 pr-4 py-3 bg-white/90 rounded-xl border-0 focus:outline-none focus:ring-2 focus:ring-blue-400 text-center text-lg tracking-widest"
-              placeholder="• • • • • •"
-              maxLength={6}
-            />
-          </div>
-          
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <button
-              onClick={handleResendOtp}
-              disabled={isLoading || !isOtpSent}
-              className="flex-1 bg-white/80 hover:bg-white/90 disabled:opacity-50 text-gray-700 py-3 rounded-xl font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Resend
-            </button>
-            
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading || !otp.trim()}
-              className="flex-1 bg-gray-700 hover:bg-gray-800 disabled:opacity-50 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
-            >
-              <Lock className="w-4 h-4" />
-              Submit
-            </button>
-          </div>
-        </div>
-
-        {/* Footer Notice */}
-        <p className="text-xs text-gray-500 text-center mt-6">
-          By continuing, you agree to our{' '}
-          <span className="text-blue-600 cursor-pointer hover:underline">Terms</span>{' '}
-          and acknowledge the{' '}
-          <span className="text-blue-600 cursor-pointer hover:underline">Privacy Policy</span>
-        </p>
-
-        {/* Employee Login Link */}
-        <div className="text-center mt-4 space-y-2">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <a 
-              href="/register" 
-              className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
-            >
-              Customer Registration
-            </a>
-          </p>
-          <p className="text-sm text-gray-600">
-            Are you an employee?{' '}
-            <a 
-              href="/employee/login" 
-              className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
-            >
-              Employee Login
-            </a>
-          </p>
         </div>
       </div>
     </div>

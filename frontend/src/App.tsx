@@ -16,21 +16,6 @@ import EmployeeAppoinmentDetails from './components/Dashboard/EmployeeAppoinment
 import EmpNotes from './components/Dashboard/EmpNotes';
 import './App.css';
 
-// Protected Route Component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
-};
-
 // Main Layout Component with Sidemenu
 const MainLayout: React.FC = () => {
   return (
@@ -53,48 +38,59 @@ const MainLayout: React.FC = () => {
   );
 };
 
-// Auth Routes Component
-const AuthRoutes: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<CustomerRegistrationPage />} />
-      <Route path="/employee/login" element={<EmployeeLoginPage />} />
-      <Route path="/employee/register" element={<EmployeeRegistrationPage />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
-  );
-};
-
 // Main App Component
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-        <div className="App">
-          <Routes>
-            <Route path="/login" element={<AuthRoutes />} />
-            <Route path="/register" element={<AuthRoutes />} />
-            <Route path="/employee/login" element={<AuthRoutes />} />
-            <Route path="/employee/register" element={<AuthRoutes />} />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <MainLayout />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </div>
+        <AppContent />
       </Router>
     </AuthProvider>
+  );
+};
+
+// App Content with Auth Check
+const AppContent: React.FC = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="App">
+      <Routes>
+        {/* Auth Routes - accessible when NOT authenticated */}
+        <Route 
+          path="/login" 
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} 
+        />
+        <Route 
+          path="/register" 
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <CustomerRegistrationPage />} 
+        />
+        <Route 
+          path="/employee/login" 
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <EmployeeLoginPage />} 
+        />
+        <Route 
+          path="/employee/register" 
+          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <EmployeeRegistrationPage />} 
+        />
+
+        {/* Protected Routes - accessible when authenticated */}
+        <Route
+          path="/*"
+          element={
+            isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />
+          }
+        />
+      </Routes>
+    </div>
   );
 };
 
