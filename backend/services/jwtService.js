@@ -7,7 +7,7 @@ class JWTService {
    * @param {string} expiresIn - Token expiration time
    * @returns {string} JWT token
    */
-  static generateToken(payload, expiresIn = process.env.JWT_EXPIRES_IN || '7d') {
+  static generateToken(payload, expiresIn = process.env.JWT_EXPIRES_IN || '70d') {
     try {
       return jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn,
@@ -32,7 +32,7 @@ class JWTService {
       type: 'access'
     };
     
-    return this.generateToken(payload, process.env.JWT_ACCESS_EXPIRES_IN || '15m');
+    return this.generateToken(payload, process.env.JWT_ACCESS_EXPIRES_IN || '30d');
   }
 
   /**
@@ -47,7 +47,7 @@ class JWTService {
       type: 'refresh'
     };
     
-    return this.generateToken(payload, process.env.JWT_REFRESH_EXPIRES_IN || '7d');
+    return this.generateToken(payload, process.env.JWT_REFRESH_EXPIRES_IN || '70d');
   }
 
   /**
