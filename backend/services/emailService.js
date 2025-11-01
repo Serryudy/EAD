@@ -5,7 +5,7 @@ class SMSService {
   constructor() {
     this.client = null;
     this.initialized = false;
-    this.apiUrl = 'https://dept-sacramento-top-subaru.trycloudflare.com/send';
+    this.apiUrl = 'https://regional-sea-anonymous-excited.trycloudflare.com/send';
   }
 
   async init() {
