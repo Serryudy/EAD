@@ -55,21 +55,32 @@ const Dashboard: React.FC = () => {
 
   // Convert API appointments to Booking format
   const convertToBookings = (appointments: Appointment[]): Booking[] => {
-    return appointments.map((apt) => ({
-      id: apt._id,
-      service: apt.serviceType,
-      date: new Date(apt.preferredDate).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      }),
-      time: apt.timeWindow || apt.scheduledTime || 'TBD',
-      vehicle: apt.vehicleMake && apt.vehicleModel 
-        ? `${apt.vehicleYear || ''} ${apt.vehicleMake} ${apt.vehicleModel}`.trim()
-        : `${apt.vehicleType} - ${apt.vehicleNumber}`,
-      customerName: apt.customerName,
-      status: apt.status === 'in-service' ? 'in-progress' : apt.status as any
-    }));
+    return appointments.map((apt) => {
+      // Handle populated vehicleId (can be object or string)
+      const vehicle = typeof apt.vehicleId === 'object' && apt.vehicleId
+        ? `${apt.vehicleId.year || ''} ${apt.vehicleId.make || ''} ${apt.vehicleId.model || ''}`.trim() || 
+          `${apt.vehicleId.type || 'Vehicle'} - ${apt.vehicleId.vehicleNumber}`
+        : 'Vehicle Info Unavailable';
+      
+      // Handle populated customerId (can be object or string)
+      const customerName = typeof apt.customerId === 'object' && apt.customerId
+        ? apt.customerId.name
+        : 'Customer';
+
+      return {
+        id: apt._id,
+        service: apt.serviceType,
+        date: new Date(apt.preferredDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        }),
+        time: apt.timeWindow || apt.scheduledTime || 'TBD',
+        vehicle,
+        customerName,
+        status: apt.status === 'in-service' ? 'in-progress' : apt.status as any
+      };
+    });
   };
 
   const handleViewBookingDetails = (bookingId: string) => {

@@ -63,15 +63,27 @@ const AppointmentsListContainer: React.FC<AppointmentsListContainerProps> = ({ o
 
   // Convert API appointments to Booking format
   const convertToBookings = (appointments: Appointment[]): Booking[] => {
-    return appointments.map((apt) => ({
-      id: apt._id,
-      service: apt.serviceType,
-      date: new Date(apt.preferredDate).toLocaleDateString(),
-      time: apt.timeWindow || apt.scheduledTime || 'TBD',
-      vehicle: `${apt.vehicleType} - ${apt.vehicleNumber}`,
-      customerName: apt.customerName,
-      status: apt.status as 'pending' | 'confirmed' | 'in-progress' | 'completed'
-    }));
+    return appointments.map((apt) => {
+      // Handle populated vehicleId (can be object or string)
+      const vehicle = typeof apt.vehicleId === 'object' && apt.vehicleId 
+        ? `${apt.vehicleId.type || 'Vehicle'} - ${apt.vehicleId.vehicleNumber}`
+        : 'Vehicle Info Unavailable';
+      
+      // Handle populated customerId (can be object or string)
+      const customerName = typeof apt.customerId === 'object' && apt.customerId
+        ? apt.customerId.name
+        : 'Customer';
+
+      return {
+        id: apt._id,
+        service: apt.serviceType,
+        date: new Date(apt.preferredDate).toLocaleDateString(),
+        time: apt.timeWindow || apt.scheduledTime || 'TBD',
+        vehicle,
+        customerName,
+        status: apt.status as 'pending' | 'confirmed' | 'in-progress' | 'completed'
+      };
+    });
   };
 
   const handleRefresh = () => {

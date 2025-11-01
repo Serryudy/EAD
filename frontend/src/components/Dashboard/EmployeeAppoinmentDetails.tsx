@@ -15,25 +15,17 @@ interface AppointmentDetails {
     _id?: string;
     name?: string;
     email?: string;
-    phone?: string;
+    mobile?: string; // Changed from 'phone' to match API
   } | string;
-  customerName?: string;
-  customerPhone?: string;
-  customerEmail?: string;
   vehicleId?: {
     _id?: string;
-    registrationNumber?: string;
+    vehicleNumber?: string; // Changed from 'registrationNumber' to match API
     make?: string;
     model?: string;
     year?: number;
     type?: string;
     mileage?: number;
   } | string;
-  vehicleNumber?: string;
-  vehicleMake?: string;
-  vehicleModel?: string;
-  vehicleYear?: number;
-  vehicleType?: string;
   appointmentDate?: string;
   preferredDate?: string;
   scheduledDate?: string;
@@ -55,7 +47,11 @@ interface AppointmentDetails {
     name?: string;
     employeeId?: string;
   } | string;
-  assignedEmployee?: string;
+  assignedEmployee?: {
+    _id: string;
+    name: string;
+    employeeId?: string;
+  } | string;
   employeeName?: string;
   notes?: string;
   additionalNotes?: string;
@@ -82,15 +78,15 @@ const EmployeeAppoinmentDetails: React.FC = () => {
     if (typeof appointment.customerId === 'object' && appointment.customerId?.name) {
       return appointment.customerId.name;
     }
-    return appointment.customerName || 'N/A';
+    return 'N/A';
   };
 
   const getCustomerPhone = () => {
     if (!appointment) return 'N/A';
-    if (typeof appointment.customerId === 'object' && appointment.customerId?.phone) {
-      return appointment.customerId.phone;
+    if (typeof appointment.customerId === 'object' && appointment.customerId?.mobile) {
+      return appointment.customerId.mobile;
     }
-    return appointment.customerPhone || 'N/A';
+    return 'N/A';
   };
 
   const getCustomerEmail = () => {
@@ -98,15 +94,15 @@ const EmployeeAppoinmentDetails: React.FC = () => {
     if (typeof appointment.customerId === 'object' && appointment.customerId?.email) {
       return appointment.customerId.email;
     }
-    return appointment.customerEmail || 'N/A';
+    return 'N/A';
   };
 
   const getVehicleNumber = () => {
     if (!appointment) return 'N/A';
-    if (typeof appointment.vehicleId === 'object' && appointment.vehicleId?.registrationNumber) {
-      return appointment.vehicleId.registrationNumber;
+    if (typeof appointment.vehicleId === 'object' && appointment.vehicleId?.vehicleNumber) {
+      return appointment.vehicleId.vehicleNumber;
     }
-    return appointment.vehicleNumber || 'N/A';
+    return 'N/A';
   };
 
   const getVehicleDetails = () => {
@@ -115,7 +111,7 @@ const EmployeeAppoinmentDetails: React.FC = () => {
       const { make, model, year } = appointment.vehicleId;
       return `${make || ''} ${model || ''} ${year ? `(${year})` : ''}`.trim() || 'N/A';
     }
-    return `${appointment.vehicleMake || ''} ${appointment.vehicleModel || ''} ${appointment.vehicleYear ? `(${appointment.vehicleYear})` : ''}`.trim() || 'N/A';
+    return 'N/A';
   };
 
   const getVehicleType = () => {
@@ -123,7 +119,7 @@ const EmployeeAppoinmentDetails: React.FC = () => {
     if (typeof appointment.vehicleId === 'object' && appointment.vehicleId?.type) {
       return appointment.vehicleId.type;
     }
-    return appointment.vehicleType || 'N/A';
+    return 'N/A';
   };
 
   const getVehicleMileage = () => {
@@ -216,8 +212,8 @@ const EmployeeAppoinmentDetails: React.FC = () => {
 
   const handleCallCustomer = (): void => {
     const phone = typeof appointment?.customerId === 'object' 
-      ? appointment.customerId?.phone 
-      : appointment?.customerPhone;
+      ? appointment.customerId?.mobile 
+      : null;
     
     if (phone) {
       window.location.href = `tel:${phone}`;
