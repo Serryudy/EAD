@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Form, Button } from 'react-bootstrap';
 import { FaSearch } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import profileImage from '../../assets/profile.png';
 import ProfileUploadSidebar from './ProfileUploadSidebar';
 
@@ -10,6 +11,7 @@ interface PageLayoutProps {
 }
 
 const PageLayout: React.FC<PageLayoutProps> = ({ children, showTopBar = true }) => {
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentProfileImage, setCurrentProfileImage] = useState(profileImage);
 
@@ -27,6 +29,15 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, showTopBar = true }) 
 
   const handleProfileClick = () => {
     setIsSidebarOpen(true);
+  };
+
+  const handleLogout = () => {
+    // Clear any stored tokens/data
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    
+    // Redirect to login page
+    navigate('/login');
   };
   return (
     <>
@@ -52,7 +63,11 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, showTopBar = true }) 
             </div>
           </div>
           <div className="d-flex align-items-center" style={{ gap: '1rem', color: '#FF0000' }}>
-            <Button variant="link" className="text-dark text-decoration-none">
+            <Button 
+              variant="link" 
+              className="text-danger text-decoration-none"
+              onClick={handleLogout}
+            >
               Log out
             </Button>
             <img
