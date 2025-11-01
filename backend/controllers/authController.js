@@ -29,6 +29,21 @@ class AuthController {
       // Generate tokens
       const tokens = JWTService.generateTokenPair(employee);
 
+      // Set HTTP-only cookies
+      res.cookie('accessToken', tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Use secure in production
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      });
+
+      res.cookie('refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 70 * 24 * 60 * 60 * 1000 // 70 days
+      });
+
       res.json({
         success: true,
         message: 'Employee login successful',
@@ -42,7 +57,7 @@ class AuthController {
             position: employee.position,
             lastLogin: employee.lastLogin
           },
-          ...tokens
+          ...tokens // Still send tokens in response for API clients
         }
       });
 
@@ -387,6 +402,21 @@ class AuthController {
       // Generate tokens
       const tokens = JWTService.generateTokenPair(customer);
 
+      // Set HTTP-only cookies
+      res.cookie('accessToken', tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      });
+
+      res.cookie('refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 70 * 24 * 60 * 60 * 1000 // 70 days
+      });
+
       res.json({
         success: true,
         message: 'Customer login successful',
@@ -399,7 +429,7 @@ class AuthController {
             isVerified: customer.isVerified,
             lastLogin: customer.lastLogin
           },
-          ...tokens
+          ...tokens // Still send tokens in response for API clients
         }
       });
 
@@ -524,6 +554,21 @@ class AuthController {
       // Generate new token pair
       const tokens = JWTService.generateTokenPair(user);
 
+      // Update HTTP-only cookies
+      res.cookie('accessToken', tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      });
+
+      res.cookie('refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 70 * 24 * 60 * 60 * 1000 // 70 days
+      });
+
       const userData = user.role === 'employee' 
         ? {
             id: user._id,
@@ -546,7 +591,7 @@ class AuthController {
         message: 'Token refreshed successfully',
         data: {
           user: userData,
-          ...tokens
+          ...tokens // Still send tokens for API clients
         }
       });
 
@@ -561,14 +606,28 @@ class AuthController {
   }
 
   /**
-   * Logout user (client should handle token removal)
+   * Logout user - Clear HTTP-only cookies
    */
   static async logout(req, res) {
     try {
-      // In a stateless JWT implementation, logout is handled client-side
-      // Here we can log the logout event
+      // Clear HTTP-only cookies
+      res.clearCookie('accessToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      });
+
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      });
+
+      // Log the logout event
       const user = req.user;
-      console.log(`${user.role} ${user.role === 'employee' ? user.employeeId : user.mobile} logged out`);
+      if (user) {
+        console.log(`${user.role} ${user.role === 'employee' ? user.employeeId : user.mobile} logged out`);
+      }
       
       res.json({
         success: true,

@@ -78,7 +78,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
     cardholderName.trim() !== '' &&
     country !== '' &&
     cardNumber.replace(/\s/g, '').length === 16 &&
-    expirationDate.replace(/\s/g, '').length === 4 &&
+    expirationDate.replace(/\s|\//g, '').length === 4 &&
     securityCode.length === 3 &&
     agreeToTerms;
 

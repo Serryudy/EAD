@@ -2,18 +2,125 @@ const Appointment = require('../models/Appointment');
 const Vehicle = require('../models/Vehicle');
 const User = require('../models/User');
 
+// Helper function to parse time window and calculate time range
+const parseTimeWindow = (timeWindow, preferredDate) => {
+  if (!timeWindow) return null;
+
+  try {
+    // Parse time window like "09:00 AM - 11:00 AM"
+    const [startStr, endStr] = timeWindow.split('-').map(t => t.trim());
+    
+    const parseTime = (timeStr, baseDate) => {
+      const [time, period] = timeStr.split(' ');
+      let [hours, minutes] = time.split(':').map(Number);
+      
+      if (period === 'PM' && hours !== 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+      
+      const date = new Date(baseDate);
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    };
+
+    const startTime = parseTime(startStr, preferredDate);
+    const endTime = parseTime(endStr, preferredDate);
+
+    return { startTime, endTime };
+  } catch (error) {
+    console.error('Error parsing time window:', error);
+    return null;
+  }
+};
+
+// Helper function to check if two time ranges overlap
+const timeRangesOverlap = (start1, end1, start2, end2) => {
+  return start1 < end2 && start2 < end1;
+};
+
+// Helper function to find available employee
+const findAvailableEmployee = async (preferredDate, timeWindow) => {
+  try {
+    // Parse the time window
+    const timeRange = parseTimeWindow(timeWindow, preferredDate);
+    if (!timeRange) {
+      console.log('Could not parse time window, skipping auto-assignment');
+      return null;
+    }
+
+    const { startTime, endTime } = timeRange;
+
+    // Find all employees (users with role 'employee')
+    const employees = await User.find({ role: 'employee', isActive: true });
+
+    if (employees.length === 0) {
+      console.log('No employees found in the system');
+      return null;
+    }
+
+    // Check each employee's availability
+    for (const employee of employees) {
+      // Get all appointments assigned to this employee on the same date
+      const employeeAppointments = await Appointment.find({
+        assignedEmployee: employee._id,
+        preferredDate: {
+          $gte: new Date(new Date(preferredDate).setHours(0, 0, 0, 0)),
+          $lte: new Date(new Date(preferredDate).setHours(23, 59, 59, 999))
+        },
+        status: { $nin: ['cancelled', 'completed'] } // Exclude cancelled and completed
+      });
+
+      // Check if employee is free during the requested time window
+      let isFree = true;
+
+      for (const apt of employeeAppointments) {
+        if (apt.timeWindow) {
+          const aptTimeRange = parseTimeWindow(apt.timeWindow, apt.preferredDate);
+          
+          if (aptTimeRange) {
+            // Check for overlap
+            if (timeRangesOverlap(
+              startTime,
+              endTime,
+              aptTimeRange.startTime,
+              aptTimeRange.endTime
+            )) {
+              isFree = false;
+              break;
+            }
+          }
+        } else if (apt.scheduledTime) {
+          // If only scheduledTime exists, assume 2-hour duration
+          const aptStart = new Date(apt.preferredDate);
+          const [hours, minutes] = apt.scheduledTime.split(':').map(Number);
+          aptStart.setHours(hours, minutes, 0, 0);
+          const aptEnd = new Date(aptStart.getTime() + 2 * 60 * 60 * 1000); // +2 hours
+
+          if (timeRangesOverlap(startTime, endTime, aptStart, aptEnd)) {
+            isFree = false;
+            break;
+          }
+        }
+      }
+
+      if (isFree) {
+        console.log(`Found available employee: ${employee.name} (${employee.employeeId})`);
+        return employee;
+      }
+    }
+
+    console.log('No available employees found for the requested time slot');
+    return null;
+  } catch (error) {
+    console.error('Error finding available employee:', error);
+    return null;
+  }
+};
+
 // Create a new appointment
 exports.createAppointment = async (req, res) => {
   try {
     const {
-      customerName,
-      customerPhone,
-      customerEmail,
-      vehicleNumber,
-      vehicleType,
-      vehicleMake,
-      vehicleModel,
-      vehicleYear,
+      vehicleId,
       serviceType,
       serviceDescription,
       preferredDate,
@@ -24,36 +131,53 @@ exports.createAppointment = async (req, res) => {
       paymentData
     } = req.body;
 
-    // Get customer ID from authenticated user or request
-    const customerId = req.user?.id || req.body.customerId;
-
-    // Check if vehicle exists, if not create it
-    let vehicle = await Vehicle.findOne({ vehicleNumber: vehicleNumber.toUpperCase() });
+    // Get authenticated user - NOW REQUIRED
+    const user = req.user;
     
-    if (!vehicle && customerId) {
-      vehicle = new Vehicle({
-        ownerId: customerId,
-        ownerName: customerName,
-        vehicleNumber: vehicleNumber.toUpperCase(),
-        make: vehicleMake || 'Unknown',
-        model: vehicleModel || vehicleType,
-        year: vehicleYear || new Date().getFullYear(),
-        type: 'Sedan' // Default, can be updated later
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required. Please login to create an appointment.'
       });
-      await vehicle.save();
     }
 
-    const appointment = new Appointment({
-      customerId,
-      customerName,
-      customerPhone,
-      customerEmail,
-      vehicleId: vehicle?._id,
-      vehicleNumber: vehicleNumber.toUpperCase(),
-      vehicleType,
-      vehicleMake,
-      vehicleModel,
-      vehicleYear,
+    // Only customers can create appointments for themselves
+    // Employees would need separate logic if they create appointments for customers
+    if (user.role !== 'customer') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only customers can create appointments.'
+      });
+    }
+
+    // Validate required fields
+    if (!vehicleId || !serviceType || !preferredDate || !timeWindow) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: vehicleId, serviceType, preferredDate, timeWindow'
+      });
+    }
+
+    // Verify vehicle exists and belongs to the user
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Vehicle not found'
+      });
+    }
+
+    if (vehicle.ownerId.toString() !== user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only create appointments for your own vehicles'
+      });
+    }
+
+    // Prepare appointment data - only store references
+    const appointmentData = {
+      customerId: user._id,
+      vehicleId: vehicle._id,
       serviceType,
       serviceDescription,
       preferredDate,
@@ -67,20 +191,53 @@ exports.createAppointment = async (req, res) => {
         paymentDate: new Date()
       } : undefined,
       paymentStatus: paymentData ? 'deposit-paid' : 'pending'
-    });
+    };
+
+    const appointment = new Appointment(appointmentData);
+
+    // Auto-assign available employee if time window is provided
+    if (preferredDate && timeWindow) {
+      console.log('🔍 Searching for available employee...');
+      const availableEmployee = await findAvailableEmployee(preferredDate, timeWindow);
+      
+      if (availableEmployee) {
+        appointment.assignedEmployee = availableEmployee._id;
+        appointment.employeeName = availableEmployee.name;
+        appointment.status = 'confirmed'; // Auto-confirm if employee is assigned
+        console.log(`✅ Auto-assigned to ${availableEmployee.name} (${availableEmployee.employeeId})`);
+      } else {
+        console.log('⚠️ No available employee found, appointment remains pending');
+      }
+    }
 
     await appointment.save();
 
-    // Update vehicle's service history if vehicle exists
-    if (vehicle) {
-      vehicle.serviceHistory.push(appointment._id);
-      await vehicle.save();
+    // Update vehicle's service history
+    vehicle.serviceHistory.push(appointment._id);
+    await vehicle.save();
+
+    // Populate customer and vehicle data for response
+    await appointment.populate('customerId', 'name email mobile');
+    await appointment.populate('vehicleId');
+    await appointment.populate('assignedEmployee', 'name employeeId');
+
+    // Prepare success message
+    let message = 'Appointment created successfully';
+    if (appointment.assignedEmployee) {
+      message += ` and assigned to ${appointment.employeeName}`;
+    } else {
+      message += '. We will assign an employee and confirm your appointment soon.';
     }
 
     res.status(201).json({
       success: true,
-      message: 'Appointment created successfully',
-      data: appointment
+      message,
+      data: appointment,
+      autoAssigned: !!appointment.assignedEmployee,
+      assignedTo: appointment.assignedEmployee ? {
+        id: appointment.assignedEmployee._id,
+        name: appointment.employeeName
+      } : null
     });
   } catch (error) {
     console.error('Error creating appointment:', error);
@@ -95,6 +252,9 @@ exports.createAppointment = async (req, res) => {
 // Get all appointments with filters
 exports.getAllAppointments = async (req, res) => {
   try {
+    // Use authenticated user from req.user
+    const user = req.user;
+    
     const {
       status,
       startDate,
@@ -109,10 +269,20 @@ exports.getAllAppointments = async (req, res) => {
 
     const query = {};
 
-    // Apply filters
+    // Filter based on user role
+    if (user.role === 'customer') {
+      // Customers can only see their own appointments (by customerId)
+      query.customerId = user._id;
+    } else if (user.role === 'employee') {
+      // Employees can see all appointments (including guest appointments)
+      // Allow filtering by specific customer or employee if provided
+      if (customerId) query.customerId = customerId;
+      if (employeeId) query.assignedEmployee = employeeId;
+      // Note: This will show all appointments including those without customerId (guest bookings)
+    }
+
+    // Apply other filters
     if (status) query.status = status;
-    if (customerId) query.customerId = customerId;
-    if (employeeId) query.assignedEmployee = employeeId;
     
     if (startDate || endDate) {
       query.preferredDate = {};
@@ -124,9 +294,9 @@ exports.getAllAppointments = async (req, res) => {
     const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
     const appointments = await Appointment.find(query)
-      .populate('customerId', 'name email phone')
-      .populate('assignedEmployee', 'name email')
-      .populate('vehicleId')
+      .populate('customerId', 'name email phone mobile')
+      .populate('assignedEmployee', 'name email employeeId')
+      .populate('vehicleId', 'vehicleNumber type make model year')
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit));
@@ -156,10 +326,13 @@ exports.getAllAppointments = async (req, res) => {
 // Get appointment by ID
 exports.getAppointmentById = async (req, res) => {
   try {
+    // Use authenticated user from req.user
+    const user = req.user;
+    
     const appointment = await Appointment.findById(req.params.id)
-      .populate('customerId', 'name email phone')
-      .populate('assignedEmployee', 'name email')
-      .populate('vehicleId');
+      .populate('customerId', 'name email phone mobile')
+      .populate('assignedEmployee', 'name email employeeId')
+      .populate('vehicleId', 'vehicleNumber type make model year');
 
     if (!appointment) {
       return res.status(404).json({
@@ -167,6 +340,25 @@ exports.getAppointmentById = async (req, res) => {
         message: 'Appointment not found'
       });
     }
+
+    // Check authorization - customers can only view their own appointments
+    if (user.role === 'customer') {
+      // If appointment has a customerId, check if it matches the logged-in user
+      if (appointment.customerId && appointment.customerId._id.toString() !== user._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. You can only view your own appointments.'
+        });
+      }
+      // If appointment has no customerId (guest booking), deny access for security
+      if (!appointment.customerId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. This is a guest appointment.'
+        });
+      }
+    }
+    // Employees can view all appointments
 
     res.json({
       success: true,
@@ -460,7 +652,7 @@ exports.getEmployeeAppointments = async (req, res) => {
 
     const appointments = await Appointment.find(query)
       .populate('customerId', 'name email phone')
-      .populate('vehicleId')
+      .populate('vehicleId', 'vehicleNumber type make model year')
       .sort({ preferredDate: 1 });
 
     res.json({
@@ -472,6 +664,81 @@ exports.getEmployeeAppointments = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch employee appointments',
+      error: error.message
+    });
+  }
+};
+
+// Check employee availability for a time slot
+exports.checkEmployeeAvailability = async (req, res) => {
+  try {
+    const { preferredDate, timeWindow } = req.query;
+
+    if (!preferredDate || !timeWindow) {
+      return res.status(400).json({
+        success: false,
+        message: 'preferredDate and timeWindow are required'
+      });
+    }
+
+    // Find available employee
+    const availableEmployee = await findAvailableEmployee(preferredDate, timeWindow);
+
+    if (availableEmployee) {
+      res.json({
+        success: true,
+        available: true,
+        employee: {
+          id: availableEmployee._id,
+          name: availableEmployee.name,
+          employeeId: availableEmployee.employeeId,
+          department: availableEmployee.department,
+          position: availableEmployee.position
+        },
+        message: `Employee ${availableEmployee.name} is available for the requested time slot`
+      });
+    } else {
+      // Get all employees and their schedules for this time slot
+      const employees = await User.find({ role: 'employee', isActive: true });
+      const employeeSchedules = [];
+
+      const timeRange = parseTimeWindow(timeWindow, preferredDate);
+      
+      for (const employee of employees) {
+        const employeeAppointments = await Appointment.find({
+          assignedEmployee: employee._id,
+          preferredDate: {
+            $gte: new Date(new Date(preferredDate).setHours(0, 0, 0, 0)),
+            $lte: new Date(new Date(preferredDate).setHours(23, 59, 59, 999))
+          },
+          status: { $nin: ['cancelled', 'completed'] }
+        });
+
+        employeeSchedules.push({
+          name: employee.name,
+          employeeId: employee.employeeId,
+          appointmentCount: employeeAppointments.length,
+          appointments: employeeAppointments.map(apt => ({
+            timeWindow: apt.timeWindow,
+            serviceType: apt.serviceType,
+            status: apt.status
+          }))
+        });
+      }
+
+      res.json({
+        success: true,
+        available: false,
+        message: 'No employees available for the requested time slot',
+        employeeSchedules,
+        suggestion: 'Please try a different time slot or we will contact you to reschedule'
+      });
+    }
+  } catch (error) {
+    console.error('Error checking employee availability:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check employee availability',
       error: error.message
     });
   }

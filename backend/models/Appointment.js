@@ -1,42 +1,19 @@
 const mongoose = require('mongoose');
 
 const appointmentSchema = new mongoose.Schema({
-  // Customer Information
+  // Customer Information - Only store reference to User
   customerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
-  },
-  customerName: {
-    type: String,
-    required: true
-  },
-  customerPhone: {
-    type: String,
-    required: true
-  },
-  customerEmail: {
-    type: String,
-    required: true
+    required: true // Now required - all appointments must be linked to a customer
   },
 
   // Vehicle Information
   vehicleId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Vehicle'
+    ref: 'Vehicle',
+    required: true // Required - link to vehicle
   },
-  vehicleNumber: {
-    type: String,
-    required: true,
-    uppercase: true
-  },
-  vehicleType: {
-    type: String,
-    required: true
-  },
-  vehicleMake: String,
-  vehicleModel: String,
-  vehicleYear: Number,
 
   // Service Information
   serviceType: {

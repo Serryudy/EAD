@@ -2,13 +2,12 @@ const JWTService = require('../services/jwtService');
 const { Employee, Customer } = require('../models/User');
 
 /**
- * Middleware to authenticate user using JWT token
+ * Middleware to authenticate user using JWT token from HTTP-only cookie or header
  */
 const authenticateToken = async (req, res, next) => {
   try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
-    const token = JWTService.extractTokenFromHeader(authHeader);
+    // Get token from cookie (preferred) or Authorization header (fallback)
+    const token = JWTService.extractToken(req);
 
     if (!token) {
       return res.status(401).json({
@@ -30,7 +29,7 @@ const authenticateToken = async (req, res, next) => {
 
     let user = null;
 
-    // Get user based on role
+    // Get user from database based on role
     if (decoded.role === 'employee') {
       user = await Employee.findById(decoded.id);
     } else if (decoded.role === 'customer') {
@@ -60,7 +59,7 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Attach user to request object
+    // Attach user to request object with complete user data from database
     req.user = user;
     next();
 
@@ -125,8 +124,7 @@ const customerOnly = (req, res, next) => {
  */
 const optionalAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    const token = JWTService.extractTokenFromHeader(authHeader);
+    const token = JWTService.extractToken(req);
 
     if (token) {
       const decoded = JWTService.verifyToken(token);
@@ -231,7 +229,7 @@ const validateRefreshToken = async (req, res, next) => {
 /**
  * Rate limiting middleware for authentication endpoints
  */
-const authRateLimit = (maxAttempts = 5, windowMs = 15 * 60 * 1000) => {
+const authRateLimit = (maxAttempts = 10, windowMs = 15 * 60 * 1000) => {
   const attempts = new Map();
 
   return (req, res, next) => {
@@ -359,6 +357,7 @@ const checkResourceOwnership = (resourceIdField = 'id') => {
 
 module.exports = {
   authenticateToken,
+  protect: authenticateToken, // Alias for authenticateToken
   authorizeRoles,
   employeeOnly,
   customerOnly,

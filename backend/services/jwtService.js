@@ -145,6 +145,32 @@ class JWTService {
   }
 
   /**
+   * Extract token from HTTP-only cookie
+   * @param {Object} cookies - Request cookies object
+   * @returns {string|null} Extracted token or null
+   */
+  static extractTokenFromCookie(cookies) {
+    if (!cookies || !cookies.accessToken) return null;
+    return cookies.accessToken;
+  }
+
+  /**
+   * Extract token from either cookie or Authorization header
+   * Prioritizes cookie over header for better security
+   * @param {Object} req - Express request object
+   * @returns {string|null} Extracted token or null
+   */
+  static extractToken(req) {
+    // First try to get from cookie (more secure)
+    const cookieToken = this.extractTokenFromCookie(req.cookies);
+    if (cookieToken) return cookieToken;
+    
+    // Fallback to Authorization header (for API clients)
+    const authHeader = req.headers.authorization;
+    return this.extractTokenFromHeader(authHeader);
+  }
+
+  /**
    * Generate email verification token
    * @param {Object} user - User object
    * @returns {string} Email verification token

@@ -1,6 +1,15 @@
 import React from 'react';
 import { Card, Form, Button, Row, Col } from 'react-bootstrap';
 
+interface Vehicle {
+  _id: string;
+  vehicleNumber: string;
+  type?: string;
+  make?: string;
+  model?: string;
+  year?: number;
+}
+
 interface AppointmentFormFieldsProps {
   formData: {
     vehicleNo: string;
@@ -10,6 +19,9 @@ interface AppointmentFormFieldsProps {
     timeWindow: string;
     additionalNotes: string;
   };
+  vehicles?: Vehicle[];
+  selectedVehicleId?: string;
+  onVehicleChange?: (vehicleId: string) => void;
   onVehicleNoChange: (value: string) => void;
   onVehicleTypeChange: (value: string) => void;
   onServiceTypeChange: (value: string) => void;
@@ -18,22 +30,26 @@ interface AppointmentFormFieldsProps {
   onNotesChange: (value: string) => void;
   onSaveDraft: () => void;
   onContinue: () => void;
+  isLoadingVehicles?: boolean;
 }
 
 const AppointmentFormFields: React.FC<AppointmentFormFieldsProps> = ({
   formData,
+  vehicles = [],
+  selectedVehicleId = '',
+  onVehicleChange,
   onVehicleNoChange,
   onVehicleTypeChange,
   onServiceTypeChange,
   onDateChange,
   onTimeWindowChange,
   onNotesChange,
-  onContinue
+  onContinue,
+  isLoadingVehicles = false
 }) => {
   // Check if all required fields are filled
   const isFormValid = 
-    formData.vehicleNo.trim() !== '' &&
-    formData.vehicleType.trim() !== '' &&
+    (selectedVehicleId || (formData.vehicleNo.trim() !== '' && formData.vehicleType.trim() !== '')) &&
     formData.serviceType.trim() !== '' &&
     formData.preferredDate.trim() !== '' &&
     formData.timeWindow.trim() !== '';
@@ -46,35 +62,47 @@ const AppointmentFormFields: React.FC<AppointmentFormFieldsProps> = ({
         <Form>
           {/* Vehicle Information */}
           <Row className="mb-3">
-            <Col md={6}>
+            <Col md={12}>
               <Form.Group>
                 <Form.Label>
-                  Vehicle No <span className="text-danger">*</span>
+                  Select Vehicle <span className="text-danger">*</span>
                 </Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="e.g., ABC-1234"
-                  value={formData.vehicleNo}
-                  onChange={(e) => onVehicleNoChange(e.target.value)}
-                  required
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>
-                  Vehicle Type <span className="text-danger">*</span>
-                </Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="e.g., Toyota Corolla (2019)"
-                  value={formData.vehicleType}
-                  onChange={(e) => onVehicleTypeChange(e.target.value)}
-                  required
-                />
+                {isLoadingVehicles ? (
+                  <Form.Control as="select" disabled>
+                    <option>Loading your vehicles...</option>
+                  </Form.Control>
+                ) : vehicles.length > 0 ? (
+                  <Form.Control
+                    as="select"
+                    value={selectedVehicleId}
+                    onChange={(e) => onVehicleChange?.(e.target.value)}
+                    required
+                  >
+                    <option value="">-- Select a vehicle --</option>
+                    {vehicles.map((vehicle) => (
+                      <option key={vehicle._id} value={vehicle._id}>
+                        {vehicle.vehicleNumber} - {vehicle.type || 'Vehicle'} 
+                        {vehicle.make && vehicle.model ? ` (${vehicle.make} ${vehicle.model})` : ''}
+                      </option>
+                    ))}
+                  </Form.Control>
+                ) : (
+                  <div>
+                    <Form.Control as="select" disabled>
+                      <option>No vehicles found</option>
+                    </Form.Control>
+                    <Form.Text className="text-muted">
+                      Please add a vehicle to your account before booking an appointment.
+                    </Form.Text>
+                  </div>
+                )}
               </Form.Group>
             </Col>
           </Row>
+
+          {/* Legacy fields - hidden but kept for backward compatibility */}
+          <input type="hidden" value={formData.vehicleNo} onChange={(e) => onVehicleNoChange(e.target.value)} />
+          <input type="hidden" value={formData.vehicleType} onChange={(e) => onVehicleTypeChange(e.target.value)} />
 
           {/* Service Type */}
           <Form.Group className="mb-3">

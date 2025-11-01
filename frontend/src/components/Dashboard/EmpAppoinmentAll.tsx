@@ -1,103 +1,85 @@
-import React from 'react';
-import { Card, Table, Badge, Button } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Card, Table, Badge, Button, Spinner, Alert } from 'react-bootstrap';
 import { FiClock, FiCalendar, FiEye } from 'react-icons/fi';
 import { BsFillCarFrontFill } from 'react-icons/bs';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import ApiService from '../../services/api';
 import './EmpAppoinmentAll.css';
 
 type AppointmentStatus = 'pending' | 'confirmed' | 'in-service' | 'completed' | 'cancelled';
 
 interface Appointment {
-  id: number;
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
-  vehicleNumber: string;
-  vehicleType: string;
-  date: string;
-  time: string;
+  _id: string;
+  customerId: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  vehicleId: {
+    registrationNumber: string;
+    make: string;
+    model: string;
+  };
+  appointmentDate: string;
+  timeWindow: string;
   status: AppointmentStatus;
-  service: string;
-  serviceDescription: string;
-  estimatedCost: number;
+  services: {
+    serviceId: {
+      name: string;
+      description: string;
+      price: number;
+    };
+  }[];
+  assignedTo?: {
+    name: string;
+    employeeId: string;
+  };
+  notes?: string;
 }
 
 const EmpAppoinmentAll: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sample appointment data
-  const appointments: Appointment[] = [
-    {
-      id: 1,
-      customerName: 'John Smith',
-      customerPhone: '+1 (555) 123-4567',
-      customerEmail: 'john.smith@email.com',
-      vehicleNumber: 'ABC-1234',
-      vehicleType: 'Toyota Corolla',
-      date: '2025-10-29',
-      time: '09:00 AM',
-      status: 'pending',
-      service: 'Oil Change',
-      serviceDescription: 'Full synthetic oil change with filter replacement',
-      estimatedCost: 89.99
-    },
-    {
-      id: 2,
-      customerName: 'Sarah Johnson',
-      customerPhone: '+1 (555) 234-5678',
-      customerEmail: 'sarah.j@email.com',
-      vehicleNumber: 'XYZ-5678',
-      vehicleType: 'Honda Civic',
-      date: '2025-10-29',
-      time: '11:30 AM',
-      status: 'confirmed',
-      service: 'Brake Check',
-      serviceDescription: 'Complete brake system inspection and pad replacement',
-      estimatedCost: 249.99
-    },
-    {
-      id: 3,
-      customerName: 'Mike Wilson',
-      customerPhone: '+1 (555) 345-6789',
-      customerEmail: 'mike.wilson@email.com',
-      vehicleNumber: 'DEF-9012',
-      vehicleType: 'Ford Focus',
-      date: '2025-10-29',
-      time: '02:00 PM',
-      status: 'in-service',
-      service: 'Full Service',
-      serviceDescription: 'Complete vehicle maintenance and inspection',
-      estimatedCost: 399.99
-    },
-    {
-      id: 4,
-      customerName: 'Emily Davis',
-      customerPhone: '+1 (555) 456-7890',
-      customerEmail: 'emily.d@email.com',
-      vehicleNumber: 'GHI-3456',
-      vehicleType: 'BMW 320i',
-      date: '2025-10-30',
-      time: '10:00 AM',
-      status: 'completed',
-      service: 'Tire Replacement',
-      serviceDescription: 'Four tire replacement with alignment',
-      estimatedCost: 699.99
-    },
-    {
-      id: 5,
-      customerName: 'Robert Brown',
-      customerPhone: '+1 (555) 567-8901',
-      customerEmail: 'robert.brown@email.com',
-      vehicleNumber: 'JKL-7890',
-      vehicleType: 'Mercedes C-Class',
-      date: '2025-10-30',
-      time: '03:30 PM',
-      status: 'pending',
-      service: 'AC Repair',
-      serviceDescription: 'Air conditioning system diagnostics and repair',
-      estimatedCost: 450.00
+  useEffect(() => {
+    fetchAppointments();
+  }, [user]);
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch all appointments for employees (no filter for now since backend doesn't support assignedEmployee filter yet)
+      const response = await ApiService.getAllAppointments({});
+
+      if (response.success && response.data) {
+        // response.data could be an array or an object with appointments property
+        const appointmentsData = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data as any).appointments || (response.data as any).data || [];
+        
+        // Filter appointments assigned to this employee on the frontend
+        const employeeAppointments = appointmentsData.filter((apt: Appointment) => 
+          apt.assignedTo?.employeeId === user?.employeeId || 
+          apt.assignedTo?.employeeId === user?.id ||
+          apt.status === 'confirmed' // Show all confirmed appointments for now
+        );
+        setAppointments(employeeAppointments);
+      } else {
+        setError('Failed to fetch appointments');
+      }
+    } catch (err: any) {
+      console.error('Error fetching appointments:', err);
+      setError(err.message || 'Failed to fetch appointments');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const getStatusBadge = (status: AppointmentStatus): React.ReactElement => {
     const statusText = {
@@ -111,86 +93,134 @@ const EmpAppoinmentAll: React.FC = () => {
     return <Badge bg="primary" style={{ backgroundColor: '#0d6efd' }}>{statusText[status]}</Badge>;
   };
 
-  const handleViewDetails = (appointmentId: number): void => {
+  const handleViewDetails = (appointmentId: string): void => {
     navigate(`/employeeappointment/${appointmentId}`);
   };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  if (loading) {
+    return (
+      <Card className="appointment-all-card">
+        <Card.Body className="text-center py-5">
+          <Spinner animation="border" variant="primary" />
+          <p className="mt-3">Loading appointments...</p>
+        </Card.Body>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="appointment-all-card">
+        <Card.Body>
+          <Alert variant="danger">
+            <Alert.Heading>Error Loading Appointments</Alert.Heading>
+            <p>{error}</p>
+            <Button variant="outline-danger" size="sm" onClick={fetchAppointments}>
+              Try Again
+            </Button>
+          </Alert>
+        </Card.Body>
+      </Card>
+    );
+  }
 
   return (
     <>
       <Card className="appointment-all-card">
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="appointment-all-title">All Appointments</h5>
+            <h5 className="appointment-all-title">My Appointments</h5>
             <Badge bg="secondary" className="total-badge">
               Total: {appointments.length}
             </Badge>
           </div>
 
-          <div className="table-responsive">
-            <Table hover className="appointment-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Customer Name</th>
-                  <th>Vehicle Info</th>
-                  <th>Service</th>
-                  <th>Schedule</th>
-                  <th>Status</th>
-                  <th>Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {appointments.map((appointment, index) => (
-                  <tr key={appointment.id}>
-                    <td>{index + 1}</td>
-                    <td>
-                      <div className="customer-info">
-                        <strong>{appointment.customerName}</strong>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="vehicle-info">
-                        <div className="d-flex align-items-center">
-                          <BsFillCarFrontFill className="me-2 text-primary" />
-                          <div>
-                            <div className="vehicle-number">{appointment.vehicleNumber}</div>
-                            <small className="text-muted">{appointment.vehicleType}</small>
+          {appointments.length === 0 ? (
+            <Alert variant="info">
+              No appointments assigned to you yet.
+            </Alert>
+          ) : (
+            <div className="table-responsive">
+              <Table hover className="appointment-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Customer Name</th>
+                    <th>Vehicle Info</th>
+                    <th>Service</th>
+                    <th>Schedule</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {appointments.map((appointment, index) => (
+                    <tr key={appointment._id}>
+                      <td>{index + 1}</td>
+                      <td>
+                        <div className="customer-info">
+                          <strong>{appointment.customerId?.name || 'N/A'}</strong>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="vehicle-info">
+                          <div className="d-flex align-items-center">
+                            <BsFillCarFrontFill className="me-2 text-primary" />
+                            <div>
+                              <div className="vehicle-number">
+                                {appointment.vehicleId?.registrationNumber || 'N/A'}
+                              </div>
+                              <small className="text-muted">
+                                {appointment.vehicleId?.make} {appointment.vehicleId?.model}
+                              </small>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="service-name">{appointment.service}</span>
-                    </td>
-                    <td>
-                      <div className="schedule-info">
-                        <div className="d-flex align-items-center mb-1">
-                          <FiCalendar className="me-2 text-muted" size={14} />
-                          <small>{appointment.date}</small>
+                      </td>
+                      <td>
+                        <span className="service-name">
+                          {appointment.services?.[0]?.serviceId?.name || 'N/A'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="schedule-info">
+                          <div className="d-flex align-items-center mb-1">
+                            <FiCalendar className="me-2 text-muted" size={14} />
+                            <small>{formatDate(appointment.appointmentDate)}</small>
+                          </div>
+                          <div className="d-flex align-items-center">
+                            <FiClock className="me-2 text-muted" size={14} />
+                            <small>{appointment.timeWindow}</small>
+                          </div>
                         </div>
-                        <div className="d-flex align-items-center">
-                          <FiClock className="me-2 text-muted" size={14} />
-                          <small>{appointment.time}</small>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{getStatusBadge(appointment.status)}</td>
-                    <td>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="details-btn"
-                        onClick={() => handleViewDetails(appointment.id)}
-                      >
-                        <FiEye className="me-1" />
-                        View Details
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
+                      </td>
+                      <td>{getStatusBadge(appointment.status)}</td>
+                      <td>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="details-btn"
+                          onClick={() => handleViewDetails(appointment._id)}
+                        >
+                          <FiEye className="me-1" />
+                          View Details
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
         </Card.Body>
       </Card>
     </>

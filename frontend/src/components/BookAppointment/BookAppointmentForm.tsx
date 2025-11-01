@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Row, Col } from 'react-bootstrap';
 import PageLayout from '../shared/PageLayout';
 import AppointmentFormHeader from './AppointmentFormHeader';
@@ -6,6 +6,8 @@ import AppointmentFormFields from './AppointmentFormFields';
 import AppointmentSummary from './AppointmentSummary';
 import PaymentForm from './PaymentForm';
 import type { PaymentData } from './PaymentForm';
+import ApiService from '../../services/api';
+import type { CreateAppointmentData, Vehicle } from '../../services/api';
 
 interface BookAppointmentFormProps {
   onSaveDraft?: (appointmentData: AppointmentData) => void;
@@ -16,6 +18,7 @@ interface BookAppointmentFormProps {
 }
 
 export interface AppointmentData {
+  vehicleId: string;
   vehicleNo: string;
   vehicleType: string;
   serviceType: string;
@@ -23,8 +26,6 @@ export interface AppointmentData {
   timeWindow: string;
   additionalNotes: string;
   employee: string;
-  customerName: string;
-  customerPhone: string;
   estimatedDuration: string;
   serviceBayAllocation: string;
   paymentData?: PaymentData;
@@ -38,22 +39,48 @@ const BookAppointmentForm: React.FC<BookAppointmentFormProps> = ({
   totalSteps = 3
 }) => {
   const [step, setStep] = useState<'details' | 'payment'>('details');
-  const [vehicleNo, setVehicleNo] = useState('');
-  const [vehicleType, setVehicleType] = useState('');
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [serviceType, setServiceType] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
   const [timeWindow, setTimeWindow] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
+
+  // Fetch user's vehicles on component mount
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      setIsLoadingVehicles(true);
+      try {
+        const response = await ApiService.getVehicles();
+        if (response.success && response.data) {
+          setVehicles(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch vehicles:', error);
+      } finally {
+        setIsLoadingVehicles(false);
+      }
+    };
+
+    fetchVehicles();
+  }, []);
+
+  // Get selected vehicle details
+  const selectedVehicle = vehicles.find(v => v._id === selectedVehicleId);
+  const vehicleNo = selectedVehicle?.vehicleNumber || '';
+  const vehicleType = selectedVehicle?.type || '';
 
   // Summary data
   const employee = 'EMP-000123';
   const vehicleSummary = vehicleNo && vehicleType ? `${vehicleType} • ${vehicleNo}` : 'Not specified';
-  const customerName = 'John Smith';
-  const customerPhone = '+1 202 555 0142';
   const estimatedDuration = '~ 2 hours';
   const serviceBayAllocation = 'Auto';
 
   const getAppointmentData = (): AppointmentData => ({
+    vehicleId: selectedVehicleId,
     vehicleNo,
     vehicleType,
     serviceType,
@@ -61,8 +88,6 @@ const BookAppointmentForm: React.FC<BookAppointmentFormProps> = ({
     timeWindow,
     additionalNotes,
     employee,
-    customerName,
-    customerPhone,
     estimatedDuration,
     serviceBayAllocation
   });
@@ -81,19 +106,69 @@ const BookAppointmentForm: React.FC<BookAppointmentFormProps> = ({
     setStep('details');
   };
 
-  const handlePaymentSubmit = (paymentData: PaymentData) => {
-    const appointmentData = {
-      ...getAppointmentData(),
-      paymentData
-    };
-    
-    if (onContinue) {
-      onContinue(appointmentData);
+  const handlePaymentSubmit = async (paymentData: PaymentData) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      // Prepare appointment data for API
+      const appointmentData: CreateAppointmentData = {
+        vehicleId: selectedVehicleId,
+        serviceType,
+        preferredDate,
+        timeWindow,
+        additionalNotes,
+        estimatedDuration,
+        paymentData: {
+          cardHolderName: paymentData.cardholderName,
+          cardNumber: paymentData.cardNumber,
+          expiryDate: paymentData.expirationDate,
+          cvv: paymentData.securityCode
+        }
+      };
+
+      console.log('Creating appointment:', appointmentData);
+
+      // Call API to create appointment
+      const response = await ApiService.createAppointment(appointmentData);
+
+      if (response.success) {
+        console.log('Appointment created successfully:', response.data);
+        
+        // Show different messages based on auto-assignment
+        const assignmentInfo = response.autoAssigned 
+          ? `\n\n✅ Confirmed & Assigned to: ${response.assignedTo?.name}\nStatus: Confirmed`
+          : `\n\n⏳ Status: Pending\nWe'll assign an employee and confirm your appointment soon.`;
+        
+        alert(`🎉 Appointment booked successfully!\n\nAppointment ID: ${response.data?._id}${assignmentInfo}`);
+        
+        // Call onContinue callback if provided
+        if (onContinue) {
+          onContinue({
+            ...getAppointmentData(),
+            paymentData
+          });
+        }
+
+        // Reset form
+        setSelectedVehicleId('');
+        setServiceType('');
+        setPreferredDate('');
+        setTimeWindow('');
+        setAdditionalNotes('');
+        setStep('details');
+      } else {
+        setSubmitError(response.message || 'Failed to create appointment');
+        alert(`❌ Error: ${response.message || 'Failed to create appointment'}`);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      setSubmitError(errorMessage);
+      console.error('Error creating appointment:', error);
+      alert(`❌ Error creating appointment: ${errorMessage}`);
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    // In a real app, this would process the payment and create the appointment
-    console.log('Appointment booked:', appointmentData);
-    alert('Appointment booked successfully!');
   };
 
   return (
@@ -122,21 +197,42 @@ const BookAppointmentForm: React.FC<BookAppointmentFormProps> = ({
                   timeWindow,
                   additionalNotes
                 }}
-                onVehicleNoChange={setVehicleNo}
-                onVehicleTypeChange={setVehicleType}
+                vehicles={vehicles}
+                selectedVehicleId={selectedVehicleId}
+                onVehicleChange={setSelectedVehicleId}
+                onVehicleNoChange={() => {}} // Deprecated, keep for compatibility
+                onVehicleTypeChange={() => {}} // Deprecated, keep for compatibility
                 onServiceTypeChange={setServiceType}
                 onDateChange={setPreferredDate}
                 onTimeWindowChange={setTimeWindow}
                 onNotesChange={setAdditionalNotes}
                 onSaveDraft={handleSaveDraft}
                 onContinue={handleContinueToPayment}
+                isLoadingVehicles={isLoadingVehicles}
               />
             ) : (
-              <PaymentForm
-                onBack={handleBackToDetails}
-                onSubmit={handlePaymentSubmit}
-                appointmentFee={5.00}
-              />
+              <>
+                <PaymentForm
+                  onBack={handleBackToDetails}
+                  onSubmit={handlePaymentSubmit}
+                  appointmentFee={5.00}
+                />
+                {submitError && (
+                  <div className="alert alert-danger mt-3" role="alert">
+                    <strong>Error:</strong> {submitError}
+                  </div>
+                )}
+                {isSubmitting && (
+                  <div className="alert alert-info mt-3" role="alert">
+                    <div className="d-flex align-items-center">
+                      <div className="spinner-border spinner-border-sm me-2" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                      Creating your appointment...
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </Col>
 
@@ -148,8 +244,8 @@ const BookAppointmentForm: React.FC<BookAppointmentFormProps> = ({
               serviceType={serviceType || 'Not selected'}
               estimatedDuration={estimatedDuration}
               serviceBayAllocation={serviceBayAllocation}
-              customerName={customerName}
-              customerPhone={customerPhone}
+              customerName="Customer" // Will be fetched from auth on backend
+              customerPhone="" // Will be fetched from auth on backend
             />
           </Col>
         </Row>

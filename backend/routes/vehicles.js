@@ -3,13 +3,13 @@ const router = express.Router();
 const vehicleController = require('../controllers/vehicleController');
 const { protect } = require('../middlewares/auth');
 
-// All vehicle routes can be protected or public based on requirements
-router.post('/', vehicleController.createVehicle);
-router.get('/', vehicleController.getAllVehicles);
-router.get('/:id', vehicleController.getVehicleById);
-router.get('/number/:vehicleNumber', vehicleController.getVehicleByNumber);
-router.get('/:id/service-history', vehicleController.getVehicleServiceHistory);
-router.put('/:id', vehicleController.updateVehicle);
-router.delete('/:id', vehicleController.deleteVehicle);
+// All vehicle routes require authentication
+router.post('/', protect, vehicleController.createVehicle);
+router.get('/', protect, vehicleController.getAllVehicles);
+router.get('/:id', protect, vehicleController.getVehicleById);
+router.get('/number/:vehicleNumber', protect, vehicleController.getVehicleByNumber);
+router.get('/:id/service-history', protect, vehicleController.getVehicleServiceHistory);
+router.put('/:id', protect, vehicleController.updateVehicle);
+router.delete('/:id', protect, vehicleController.deleteVehicle);
 
 module.exports = router;

@@ -6,7 +6,12 @@ const Service = require('../models/Service');
 // Get dashboard statistics
 exports.getDashboardStats = async (req, res) => {
   try {
-    const { employeeId, startDate, endDate } = req.query;
+    // Use authenticated user from req.user (set by protect middleware)
+    const user = req.user;
+    const { startDate, endDate } = req.query;
+    
+    // Allow query param to override for employees viewing specific data
+    const employeeId = req.query.employeeId || (user.role === 'employee' ? null : null);
 
     // Build date range query
     const dateQuery = {};
@@ -16,9 +21,19 @@ exports.getDashboardStats = async (req, res) => {
       if (endDate) dateQuery.createdAt.$lte = new Date(endDate);
     }
 
-    // Get appointment statistics
+    // Get appointment statistics based on user role
     const appointmentQuery = { ...dateQuery };
-    if (employeeId) appointmentQuery.assignedEmployee = employeeId;
+    
+    // If customer, only show their appointments (must have customerId)
+    if (user.role === 'customer') {
+      appointmentQuery.customerId = user._id;
+    } else if (user.role === 'employee') {
+      // If employee and specific employeeId provided, filter by that
+      if (employeeId) {
+        appointmentQuery.assignedEmployee = employeeId;
+      }
+      // Otherwise show ALL appointments (including guest bookings without customerId)
+    }
 
     const totalAppointments = await Appointment.countDocuments(appointmentQuery);
     const pendingAppointments = await Appointment.countDocuments({ 
@@ -78,7 +93,9 @@ exports.getDashboardStats = async (req, res) => {
 // Get today's schedule
 exports.getTodaysSchedule = async (req, res) => {
   try {
-    const { employeeId } = req.query;
+    // Use authenticated user from req.user
+    const user = req.user;
+    const employeeId = req.query.employeeId;
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -90,12 +107,20 @@ exports.getTodaysSchedule = async (req, res) => {
       status: { $in: ['confirmed', 'in-service', 'pending'] }
     };
 
-    if (employeeId) {
-      query.assignedEmployee = employeeId;
+    // Filter based on user role
+    if (user.role === 'customer') {
+      // Customers see only their appointments
+      query.customerId = user._id;
+    } else if (user.role === 'employee') {
+      // Employees see all appointments (including guest bookings)
+      if (employeeId) {
+        query.assignedEmployee = employeeId;
+      }
     }
 
     const appointments = await Appointment.find(query)
-      .populate('customerId', 'name phone')
+      .populate('customerId', 'name phone mobile')
+      .populate('assignedEmployee', 'name employeeId')
       .populate('vehicleId')
       .sort({ timeWindow: 1 });
 
@@ -116,13 +141,26 @@ exports.getTodaysSchedule = async (req, res) => {
 // Get recent activity
 exports.getRecentActivity = async (req, res) => {
   try {
-    const { employeeId, limit = 10 } = req.query;
+    // Use authenticated user from req.user
+    const user = req.user;
+    const { limit = 10 } = req.query;
+    const employeeId = req.query.employeeId;
 
     const query = {};
-    if (employeeId) query.assignedEmployee = employeeId;
+    
+    // Filter based on user role
+    if (user.role === 'customer') {
+      query.customerId = user._id;
+    } else if (user.role === 'employee') {
+      // Employees see all activity
+      if (employeeId) {
+        query.assignedEmployee = employeeId;
+      }
+    }
 
     const appointments = await Appointment.find(query)
-      .populate('customerId', 'name')
+      .populate('customerId', 'name mobile')
+      .populate('vehicleId', 'vehicleNumber make model')
       .sort({ updatedAt: -1 })
       .limit(parseInt(limit));
 
@@ -131,8 +169,8 @@ exports.getRecentActivity = async (req, res) => {
       type: 'appointment',
       action: getActivityAction(apt.status),
       appointmentId: apt._id,
-      customerName: apt.customerName,
-      vehicleNumber: apt.vehicleNumber,
+      customerName: apt.customerId?.name || 'Unknown', // Get from populated customer
+      vehicleNumber: apt.vehicleId?.vehicleNumber || 'Unknown',
       serviceType: apt.serviceType,
       status: apt.status,
       timestamp: apt.updatedAt
@@ -155,19 +193,29 @@ exports.getRecentActivity = async (req, res) => {
 // Get upcoming bookings
 exports.getUpcomingBookings = async (req, res) => {
   try {
-    const { customerId, employeeId, limit = 5 } = req.query;
+    // Use authenticated user from req.user
+    const user = req.user;
+    const { limit = 5 } = req.query;
+    const customerId = req.query.customerId;
+    const employeeId = req.query.employeeId;
 
     const query = {
       preferredDate: { $gte: new Date() },
       status: { $in: ['pending', 'confirmed'] }
     };
 
-    if (customerId) query.customerId = customerId;
-    if (employeeId) query.assignedEmployee = employeeId;
+    // Filter based on user role
+    if (user.role === 'customer') {
+      query.customerId = user._id;
+    } else if (user.role === 'employee') {
+      // Employees can see all upcoming bookings (including guest bookings)
+      if (customerId) query.customerId = customerId;
+      if (employeeId) query.assignedEmployee = employeeId;
+    }
 
     const bookings = await Appointment.find(query)
-      .populate('customerId', 'name phone email')
-      .populate('assignedEmployee', 'name')
+      .populate('customerId', 'name phone email mobile')
+      .populate('assignedEmployee', 'name employeeId')
       .populate('vehicleId')
       .sort({ preferredDate: 1 })
       .limit(parseInt(limit));
@@ -257,7 +305,7 @@ exports.getCalendarEvents = async (req, res) => {
 
     const appointments = await Appointment.find(query)
       .populate('customerId', 'name')
-      .populate('vehicleId')
+      .populate('vehicleId', 'vehicleNumber type')
       .sort({ preferredDate: 1, timeWindow: 1 });
 
     // Format for calendar
@@ -265,9 +313,9 @@ exports.getCalendarEvents = async (req, res) => {
       id: apt._id,
       date: apt.preferredDate,
       time: apt.timeWindow,
-      title: `${apt.vehicleType} - ${apt.serviceType}`,
-      vehicleNumber: apt.vehicleNumber,
-      customerName: apt.customerName,
+      title: `${apt.vehicleId?.type || 'Vehicle'} - ${apt.serviceType}`,
+      vehicleNumber: apt.vehicleId?.vehicleNumber || 'N/A',
+      customerName: apt.customerId?.name || 'N/A',
       status: apt.status,
       type: apt.serviceType.toLowerCase().includes('inspection') ? 'inspection' : 'service'
     }));

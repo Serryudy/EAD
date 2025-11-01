@@ -1,107 +1,253 @@
-import React, { useState } from 'react';
-import { Container, Row, Col, Card, Badge, Button, Form, Modal, Toast, ToastContainer } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Badge, Button, Form, Toast, ToastContainer, Spinner, Alert } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiPhone, FiCalendar, FiClock, FiEdit2, FiCheck } from 'react-icons/fi';
 import { BsFillCarFrontFill } from 'react-icons/bs';
+import ApiService from '../../services/api';
+import ServiceManagement from './ServiceManagement';
 import './EmployeeAppoinmentDetails.css';
 
 type AppointmentStatus = 'pending' | 'confirmed' | 'in-service' | 'completed' | 'cancelled';
 
 interface AppointmentDetails {
-  id: number;
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
-  vehicleNumber: string;
-  vehicleType: string;
-  vehicleMake: string;
-  vehicleModel: string;
-  vehicleYear: number;
-  date: string;
-  time: string;
+  _id: string;
+  customerId?: {
+    _id?: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+  } | string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  vehicleId?: {
+    _id?: string;
+    registrationNumber?: string;
+    make?: string;
+    model?: string;
+    year?: number;
+    type?: string;
+    mileage?: number;
+  } | string;
+  vehicleNumber?: string;
+  vehicleMake?: string;
+  vehicleModel?: string;
+  vehicleYear?: number;
+  vehicleType?: string;
+  appointmentDate?: string;
+  preferredDate?: string;
+  scheduledDate?: string;
+  timeWindow?: string;
+  scheduledTime?: string;
   status: AppointmentStatus;
-  service: string;
-  serviceDescription: string;
-  notes: string;
+  serviceType?: string;
+  serviceDescription?: string;
+  services?: {
+    serviceId?: {
+      _id?: string;
+      name?: string;
+      description?: string;
+      price?: number;
+    } | string;
+  }[];
+  assignedTo?: {
+    _id?: string;
+    name?: string;
+    employeeId?: string;
+  } | string;
+  assignedEmployee?: string;
+  employeeName?: string;
+  notes?: string;
+  additionalNotes?: string;
+  estimatedCost?: number;
 }
 
 const EmployeeAppoinmentDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Sample appointment data (in real app, fetch from API using id)
-  const [appointment, setAppointment] = useState<AppointmentDetails>({
-    id: Number(id) || 1,
-    customerName: 'John Smith',
-    customerPhone: '+1 (555) 123-4567',
-    customerEmail: 'john.smith@email.com',
-    vehicleNumber: 'ABC-1234',
-    vehicleType: 'Sedan',
-    vehicleMake: 'Toyota',
-    vehicleModel: 'Corolla',
-    vehicleYear: 2020,
-    date: '2025-10-29',
-    time: '09:00',
-    status: 'pending',
-    service: 'Oil Change',
-    serviceDescription: 'Full synthetic oil change with filter replacement. Includes multi-point inspection.',  
-    notes: 'Customer requested Mobil 1 synthetic oil.'
-  });
-
+  const [appointment, setAppointment] = useState<AppointmentDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   const [isEditingStatus, setIsEditingStatus] = useState<boolean>(false);
-  const [newStatus, setNewStatus] = useState<AppointmentStatus>(appointment.status);
-  const [isEditingSchedule, setIsEditingSchedule] = useState<boolean>(false);
-  const [newDate, setNewDate] = useState<string>(appointment.date);
-  const [newTime, setNewTime] = useState<string>(appointment.time);
-  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-  const [showStatusConfirmModal, setShowStatusConfirmModal] = useState<boolean>(false);
+  const [newStatus, setNewStatus] = useState<AppointmentStatus>('pending');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [toastVariant, setToastVariant] = useState<'success' | 'danger'>('success');  const handleCallCustomer = (): void => {
-    window.location.href = `tel:${appointment.customerPhone}`;
+  const [toastVariant, setToastVariant] = useState<'success' | 'danger'>('success');
+
+  // Helper functions to safely access nested properties
+  const getCustomerName = () => {
+    if (!appointment) return 'N/A';
+    if (typeof appointment.customerId === 'object' && appointment.customerId?.name) {
+      return appointment.customerId.name;
+    }
+    return appointment.customerName || 'N/A';
   };
 
-  const handleUpdateStatus = (): void => {
-    if (newStatus === 'cancelled') {
-      // Show confirmation modal for cancelled status
-      setShowStatusConfirmModal(true);
-    } else {
-      // Update status directly for other statuses
-      setAppointment({ ...appointment, status: newStatus });
-      setIsEditingStatus(false);
-      setToastMessage('Status updated successfully!');
-      setToastVariant('success');
-      setShowToast(true);
+  const getCustomerPhone = () => {
+    if (!appointment) return 'N/A';
+    if (typeof appointment.customerId === 'object' && appointment.customerId?.phone) {
+      return appointment.customerId.phone;
+    }
+    return appointment.customerPhone || 'N/A';
+  };
+
+  const getCustomerEmail = () => {
+    if (!appointment) return 'N/A';
+    if (typeof appointment.customerId === 'object' && appointment.customerId?.email) {
+      return appointment.customerId.email;
+    }
+    return appointment.customerEmail || 'N/A';
+  };
+
+  const getVehicleNumber = () => {
+    if (!appointment) return 'N/A';
+    if (typeof appointment.vehicleId === 'object' && appointment.vehicleId?.registrationNumber) {
+      return appointment.vehicleId.registrationNumber;
+    }
+    return appointment.vehicleNumber || 'N/A';
+  };
+
+  const getVehicleDetails = () => {
+    if (!appointment) return 'N/A';
+    if (typeof appointment.vehicleId === 'object') {
+      const { make, model, year } = appointment.vehicleId;
+      return `${make || ''} ${model || ''} ${year ? `(${year})` : ''}`.trim() || 'N/A';
+    }
+    return `${appointment.vehicleMake || ''} ${appointment.vehicleModel || ''} ${appointment.vehicleYear ? `(${appointment.vehicleYear})` : ''}`.trim() || 'N/A';
+  };
+
+  const getVehicleType = () => {
+    if (!appointment) return 'N/A';
+    if (typeof appointment.vehicleId === 'object' && appointment.vehicleId?.type) {
+      return appointment.vehicleId.type;
+    }
+    return appointment.vehicleType || 'N/A';
+  };
+
+  const getVehicleMileage = () => {
+    if (!appointment) return null;
+    if (typeof appointment.vehicleId === 'object' && appointment.vehicleId?.mileage) {
+      return appointment.vehicleId.mileage;
+    }
+    return null;
+  };
+
+  const getServiceName = () => {
+    if (!appointment) return 'N/A';
+    if (appointment.services?.[0]?.serviceId) {
+      if (typeof appointment.services[0].serviceId === 'object') {
+        return appointment.services[0].serviceId.name || 'N/A';
+      }
+    }
+    return appointment.serviceType || 'N/A';
+  };
+
+  const getServiceDescription = () => {
+    if (!appointment) return 'N/A';
+    if (appointment.services?.[0]?.serviceId) {
+      if (typeof appointment.services[0].serviceId === 'object') {
+        return appointment.services[0].serviceId.description || 'N/A';
+      }
+    }
+    return appointment.serviceDescription || 'N/A';
+  };
+
+  const getServicePrice = () => {
+    if (!appointment) return 'N/A';
+    if (appointment.services?.[0]?.serviceId) {
+      if (typeof appointment.services[0].serviceId === 'object' && appointment.services[0].serviceId.price) {
+        return appointment.services[0].serviceId.price.toFixed(2);
+      }
+    }
+    return appointment.estimatedCost ? appointment.estimatedCost.toFixed(2) : 'N/A';
+  };
+
+  const getAppointmentDate = () => {
+    if (!appointment) return '';
+    return appointment.appointmentDate || appointment.preferredDate || appointment.scheduledDate || '';
+  };
+
+  const getAssignedEmployee = () => {
+    if (!appointment) return null;
+    if (typeof appointment.assignedTo === 'object' && appointment.assignedTo?.name) {
+      return appointment.assignedTo.name;
+    }
+    return appointment.employeeName || null;
+  };
+
+  useEffect(() => {
+    if (id) {
+      fetchAppointment();
+    }
+  }, [id]);
+
+  const fetchAppointment = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await ApiService.getAppointmentById(id);
+      
+      if (response.success && response.data) {
+        setAppointment(response.data);
+        setNewStatus(response.data.status);
+      } else {
+        setError('Failed to fetch appointment details');
+      }
+    } catch (err: any) {
+      console.error('Error fetching appointment:', err);
+      setError(err.message || 'Failed to fetch appointment details');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const confirmStatusChange = (): void => {
-    setAppointment({ ...appointment, status: newStatus });
-    setIsEditingStatus(false);
-    setShowStatusConfirmModal(false);
-    setToastMessage('Status updated and customer will be notified!');
+  const handleServiceStarted = () => {
+    // Refresh appointment data after service is started
+    fetchAppointment();
+    setToastMessage('Service started successfully!');
     setToastVariant('success');
     setShowToast(true);
   };
 
-  const handleEditSchedule = (): void => {
-    setNewDate(appointment.date);
-    setNewTime(appointment.time);
-    setIsEditingSchedule(true);
+  const handleCallCustomer = (): void => {
+    const phone = typeof appointment?.customerId === 'object' 
+      ? appointment.customerId?.phone 
+      : appointment?.customerPhone;
+    
+    if (phone) {
+      window.location.href = `tel:${phone}`;
+    }
   };
 
-  const handleSaveSchedule = (): void => {
-    // Show confirmation modal before saving
-    setShowConfirmModal(true);
-  };
+  const handleUpdateStatus = async (): Promise<void> => {
+    if (!appointment || !id) return;
 
-  const confirmScheduleChange = (): void => {
-    setAppointment({ ...appointment, date: newDate, time: newTime });
-    setIsEditingSchedule(false);
-    setShowConfirmModal(false);
-    setToastMessage('Schedule updated and customer will be notified!');
-    setToastVariant('success');
-    setShowToast(true);
+    try {
+      const response = await ApiService.updateAppointmentStatus(id, newStatus);
+      
+      if (response.success) {
+        setAppointment({ ...appointment, status: newStatus });
+        setIsEditingStatus(false);
+        setToastMessage('Status updated successfully!');
+        setToastVariant('success');
+        setShowToast(true);
+        fetchAppointment(); // Refresh data
+      } else {
+        setToastMessage('Failed to update status');
+        setToastVariant('danger');
+        setShowToast(true);
+      }
+    } catch (err: any) {
+      console.error('Error updating status:', err);
+      setToastMessage(err.message || 'Failed to update status');
+      setToastVariant('danger');
+      setShowToast(true);
+    }
   };
 
   const getStatusBadge = (status: AppointmentStatus): React.ReactElement => {
@@ -115,6 +261,42 @@ const EmployeeAppoinmentDetails: React.FC = () => {
 
     return <Badge bg="primary" style={{ backgroundColor: '#0d6efd' }} className="status-badge-large">{statusText[status]}</Badge>;
   };
+
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="appointment-details-page">
+        <Container fluid className="py-5 text-center">
+          <Spinner animation="border" variant="primary" />
+          <p className="mt-3">Loading appointment details...</p>
+        </Container>
+      </div>
+    );
+  }
+
+  if (error || !appointment) {
+    return (
+      <div className="appointment-details-page">
+        <Container fluid className="py-5">
+          <Alert variant="danger">
+            <Alert.Heading>Error Loading Appointment</Alert.Heading>
+            <p>{error || 'Appointment not found'}</p>
+            <Button variant="outline-danger" onClick={() => navigate(-1)}>
+              Go Back
+            </Button>
+          </Alert>
+        </Container>
+      </div>
+    );
+  }
 
   return (
     <div className="appointment-details-page">
@@ -156,11 +338,15 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                 <div className="info-group">
                   <div className="info-item">
                     <label>Name:</label>
-                    <strong>{appointment.customerName}</strong>
+                    <strong>{getCustomerName()}</strong>
                   </div>
                   <div className="info-item">
                     <label>Phone:</label>
-                    <strong>{appointment.customerPhone}</strong>
+                    <strong>{getCustomerPhone()}</strong>
+                  </div>
+                  <div className="info-item">
+                    <label>Email:</label>
+                    <strong>{getCustomerEmail()}</strong>
                   </div>
                 </div>
               </Card.Body>
@@ -177,12 +363,22 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                 <div className="info-group">
                   <div className="info-item">
                     <label>Vehicle No:</label>
-                    <strong>{appointment.vehicleNumber}</strong>
+                    <strong>{getVehicleNumber()}</strong>
                   </div>
                   <div className="info-item">
-                    <label>Vehicle Type:</label>
-                    <strong>{appointment.vehicleMake} {appointment.vehicleModel} ({appointment.vehicleYear})</strong>
+                    <label>Vehicle:</label>
+                    <strong>{getVehicleDetails()}</strong>
                   </div>
+                  <div className="info-item">
+                    <label>Type:</label>
+                    <strong>{getVehicleType()}</strong>
+                  </div>
+                  {getVehicleMileage() && (
+                    <div className="info-item">
+                      <label>Mileage:</label>
+                      <strong>{getVehicleMileage()?.toLocaleString()} km</strong>
+                    </div>
+                  )}
                 </div>
               </Card.Body>
             </Card>
@@ -198,6 +394,7 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                       size="sm"
                       onClick={() => setIsEditingStatus(true)}
                     >
+                      <FiEdit2 className="me-1" />
                       Edit Status
                     </Button>
                   )}
@@ -252,11 +449,19 @@ const EmployeeAppoinmentDetails: React.FC = () => {
                 <div className="info-group">
                   <div className="info-item">
                     <label>Service Type:</label>
-                    <strong>{appointment.service}</strong>
+                    <strong>{getServiceName()}</strong>
                   </div>
                   <div className="info-item">
                     <label>Description:</label>
-                    <p className="service-description">{appointment.serviceDescription}</p>
+                    <p className="service-description">
+                      {getServiceDescription()}
+                    </p>
+                  </div>
+                  <div className="info-item">
+                    <label>Estimated Cost:</label>
+                    <strong className="text-success">
+                      ${getServicePrice()}
+                    </strong>
                   </div>
                 </div>
               </Card.Body>
@@ -265,125 +470,53 @@ const EmployeeAppoinmentDetails: React.FC = () => {
             {/* Schedule Information */}
             <Card className="detail-card mt-4">
               <Card.Body>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="card-section-title mb-0">Schedule Information</h5>
-                  {!isEditingSchedule && (
-                    <Button
-                      variant="outline-primary"
-                      size="sm"
-                      onClick={handleEditSchedule}
-                    >
-                      <FiEdit2 className="me-1" />
-                      Edit
-                    </Button>
+                <h5 className="card-section-title mb-3">Schedule Information</h5>
+
+                <div className="info-group">
+                  <div className="info-item">
+                    <label>
+                      <FiCalendar className="me-1" />
+                      Date:
+                    </label>
+                    <strong>{getAppointmentDate() ? formatDate(getAppointmentDate()) : 'N/A'}</strong>
+                  </div>
+                  <div className="info-item">
+                    <label>
+                      <FiClock className="me-1" />
+                      Time Window:
+                    </label>
+                    <strong>{appointment.timeWindow || appointment.scheduledTime || 'N/A'}</strong>
+                  </div>
+                  {getAssignedEmployee() && (
+                    <div className="info-item">
+                      <label>Assigned To:</label>
+                      <strong>{getAssignedEmployee()}</strong>
+                    </div>
                   )}
                 </div>
 
-                {isEditingSchedule ? (
-                  <div>
-                    <Form.Group className="mb-3">
-                      <Form.Label>
-                        <FiCalendar className="me-1" />
-                        Date:
-                      </Form.Label>
-                      <Form.Control
-                        type="date"
-                        value={newDate}
-                        onChange={(e) => setNewDate(e.target.value)}
-                      />
-                    </Form.Group>
-                    <Form.Group className="mb-3">
-                      <Form.Label>
-                        <FiClock className="me-1" />
-                        Time:
-                      </Form.Label>
-                      <Form.Control
-                        type="time"
-                        value={newTime}
-                        onChange={(e) => setNewTime(e.target.value)}
-                      />
-                    </Form.Group>
-                    <div className="d-flex gap-2">
-                      <Button variant="primary" onClick={handleSaveSchedule}>
-                        Save Changes
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => setIsEditingSchedule(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="info-group">
-                    <div className="info-item">
-                      <label>
-                        <FiCalendar className="me-1" />
-                        Date:
-                      </label>
-                      <strong>{appointment.date}</strong>
-                    </div>
-                    <div className="info-item">
-                      <label>
-                        <FiClock className="me-1" />
-                        Time:
-                      </label>
-                      <strong>{appointment.time}</strong>
-                    </div>
+                {(appointment.notes || appointment.additionalNotes) && (
+                  <div className="mt-3">
+                    <label className="fw-bold">Notes:</label>
+                    <p className="text-muted">{appointment.notes || appointment.additionalNotes}</p>
                   </div>
                 )}
               </Card.Body>
             </Card>
           </Col>
         </Row>
+
+        {/* Service Management Component */}
+        <Row className="mt-4">
+          <Col xs={12}>
+            <ServiceManagement 
+              appointmentId={appointment._id}
+              appointmentStatus={appointment.status}
+              onServiceStarted={handleServiceStarted}
+            />
+          </Col>
+        </Row>
       </Container>
-
-      {/* Confirmation Modal for Schedule Change */}
-      <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Schedule Change</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>You are about to change the appointment schedule to:</p>
-          <ul>
-            <li><strong>Date:</strong> {newDate}</li>
-            <li><strong>Time:</strong> {newTime}</li>
-          </ul>
-          <p className="text-primary fw-bold mt-3">
-            Will you inform the customer about this change?
-          </p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowConfirmModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={confirmScheduleChange}>
-            Yes, Save & Notify Customer
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Confirmation Modal for Status Change to Cancelled */}
-      <Modal show={showStatusConfirmModal} onHide={() => setShowStatusConfirmModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Status Change</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>You are about to change the appointment status to <strong>Cancelled</strong>.</p>
-          <p className="text-primary fw-bold mt-3">
-            Will you inform the customer about this change?
-          </p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowStatusConfirmModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={confirmStatusChange}>
-            Yes, Cancel Appointment & Notify Customer
-          </Button>
-        </Modal.Footer>
-      </Modal>
 
       {/* Toast Notification */}
       <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
@@ -396,7 +529,7 @@ const EmployeeAppoinmentDetails: React.FC = () => {
         >
           <Toast.Header>
             <FiCheck className="me-2" />
-            <strong className="me-auto">Success</strong>
+            <strong className="me-auto">{toastVariant === 'success' ? 'Success' : 'Error'}</strong>
           </Toast.Header>
           <Toast.Body className="text-white">
             {toastMessage}
