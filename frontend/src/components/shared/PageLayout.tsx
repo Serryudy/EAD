@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Form, Button } from 'react-bootstrap';
 import { FaSearch } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+import ApiService from '../../services/api';
 import profileImage from '../../assets/profile.png';
 import ProfileUploadSidebar from './ProfileUploadSidebar';
 
@@ -12,32 +14,54 @@ interface PageLayoutProps {
 
 const PageLayout: React.FC<PageLayoutProps> = ({ children, showTopBar = true }) => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentProfileImage, setCurrentProfileImage] = useState(profileImage);
 
-  const handleImageUpload = (file: File) => {
-    console.log('Uploading file:', file);
-    // TODO: Implement actual upload logic to backend
-    // For now, just show the preview
+  // Load profile picture on mount
+  useEffect(() => {
+    const loadProfilePicture = async () => {
+      try {
+        const response = await ApiService.getProfilePicture();
+        if (response.success && response.data?.profilePicture) {
+          setCurrentProfileImage(response.data.profilePicture);
+        }
+      } catch (error) {
+        console.error('Error loading profile picture:', error);
+      }
+    };
+    loadProfilePicture();
+  }, []);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
-  const handleImageDelete = () => {
-    console.log('Deleting profile picture');
-    // TODO: Implement actual delete logic
-    setCurrentProfileImage(profileImage); // Reset to default profile image
+  const handleImageUpload = async (file: File) => {
+    try {
+      const response = await ApiService.uploadProfilePicture(file);
+      if (response.success && response.data?.profilePicture) {
+        setCurrentProfileImage(response.data.profilePicture);
+      }
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      throw error;
+    }
+  };
+
+  const handleImageDelete = async () => {
+    try {
+      await ApiService.deleteProfilePicture();
+      setCurrentProfileImage(profileImage);
+    } catch (error) {
+      console.error('Error deleting profile picture:', error);
+      throw error;
+    }
   };
 
   const handleProfileClick = () => {
     setIsSidebarOpen(true);
-  };
-
-  const handleLogout = () => {
-    // Clear any stored tokens/data
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    
-    // Redirect to login page
-    navigate('/login');
   };
   return (
     <>

@@ -44,7 +44,15 @@ const employeeSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  lockUntil: Date
+  lockUntil: Date,
+  profilePicture: {
+    type: String,
+    default: null
+  },
+  profilePicturePublicId: {
+    type: String,
+    default: null
+  }
 }, {
   timestamps: true
 });
@@ -90,6 +98,14 @@ const customerSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  profilePicture: {
+    type: String,
+    default: null
+  },
+  profilePicturePublicId: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

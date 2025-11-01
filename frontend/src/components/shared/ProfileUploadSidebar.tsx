@@ -7,8 +7,8 @@ interface ProfileUploadSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   currentImage: string;
-  onImageUpload: (file: File) => void;
-  onImageDelete: () => void;
+  onImageUpload: (file: File) => Promise<void>;
+  onImageDelete: () => Promise<void>;
 }
 
 const ProfileUploadSidebar: React.FC<ProfileUploadSidebarProps> = ({
@@ -19,30 +19,50 @@ const ProfileUploadSidebar: React.FC<ProfileUploadSidebarProps> = ({
   onImageDelete,
 }) => {
   const [previewImage, setPreviewImage] = useState<string>(currentImage);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Update preview when currentImage changes
   useEffect(() => {
     setPreviewImage(currentImage);
   }, [currentImage]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Preview the image
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      
-      // Call the upload handler
-      onImageUpload(file);
+      setIsUploading(true);
+      try {
+        // Preview the image
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewImage(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+        
+        // Call the upload handler
+        await onImageUpload(file);
+      } catch (error) {
+        console.error('Upload failed:', error);
+        // Revert preview on error
+        setPreviewImage(currentImage);
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
-  const handleDelete = () => {
-    setPreviewImage(defaultProfileImage);
-    onImageDelete();
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      setPreviewImage(defaultProfileImage);
+      await onImageDelete();
+    } catch (error) {
+      console.error('Delete failed:', error);
+      // Revert preview on error
+      setPreviewImage(currentImage);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -116,11 +136,21 @@ const ProfileUploadSidebar: React.FC<ProfileUploadSidebarProps> = ({
                 className="w-100 d-flex align-items-center justify-content-center py-2"
                 style={{ gap: '0.5rem', fontSize: 'clamp(0.875rem, 2vw, 1rem)' }}
                 as="span"
+                disabled={isUploading || isDeleting}
               >
-                <Upload size={18} className="d-md-none" />
-                <Upload size={20} className="d-none d-md-inline" />
-                <span className="d-none d-sm-inline">Upload New Picture</span>
-                <span className="d-sm-none">Upload</span>
+                {isUploading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={18} className="d-md-none" />
+                    <Upload size={20} className="d-none d-md-inline" />
+                    <span className="d-none d-sm-inline">Upload New Picture</span>
+                    <span className="d-sm-none">Upload</span>
+                  </>
+                )}
               </Button>
             </label>
             <input
@@ -129,6 +159,7 @@ const ProfileUploadSidebar: React.FC<ProfileUploadSidebarProps> = ({
               accept="image/*"
               className="d-none"
               onChange={handleFileChange}
+              disabled={isUploading || isDeleting}
             />
           </div>
 
@@ -139,16 +170,26 @@ const ProfileUploadSidebar: React.FC<ProfileUploadSidebarProps> = ({
               className="w-100 d-flex align-items-center justify-content-center py-2"
               style={{ gap: '0.5rem', fontSize: 'clamp(0.875rem, 2vw, 1rem)' }}
               onClick={handleDelete}
+              disabled={isUploading || isDeleting}
             >
-              <Trash2 size={18} className="d-md-none" />
-              <Trash2 size={20} className="d-none d-md-inline" />
-              <span className="d-none d-sm-inline">Reset to Default</span>
-              <span className="d-sm-none">Reset</span>
+              {isDeleting ? (
+                <>
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 size={18} className="d-md-none" />
+                  <Trash2 size={20} className="d-none d-md-inline" />
+                  <span className="d-none d-sm-inline">Delete profile image</span>
+                  <span className="d-sm-none">Delete</span>
+                </>
+              )}
             </Button>
           )}
 
           {/* Info Text */}
-          <div className="mt-3 mt-md-4">
+          {/* <div className="mt-3 mt-md-4">
             <small className="text-muted" style={{ fontSize: 'clamp(0.75rem, 1.5vw, 0.875rem)' }}>
               <strong>Supported formats:</strong> JPG, PNG, GIF
               <br />
@@ -156,7 +197,7 @@ const ProfileUploadSidebar: React.FC<ProfileUploadSidebarProps> = ({
               <br />
               <strong>Recommended:</strong> Square image, at least 200x200px
             </small>
-          </div>
+          </div> */}
         </div>
       </div>
     </>
