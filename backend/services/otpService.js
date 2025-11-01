@@ -1,10 +1,16 @@
 class OTPService {
   /**
-   * Generate a 6-digit OTP
-   * @returns {string} 6-digit OTP
+   * Generate a 6-character letter-based OTP (uppercase letters only)
+   * @returns {string} 6-letter OTP
    */
   static generateOTP() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let otp = '';
+    for (let i = 0; i < 6; i++) {
+      const randomIndex = Math.floor(Math.random() * letters.length);
+      otp += letters[randomIndex];
+    }
+    return otp;
   }
 
   /**
@@ -106,8 +112,8 @@ class OTPService {
    * @param {string} appName - Application name
    * @returns {string} SMS message
    */
-  static generateOTPMessage(otp, expiryMinutes = 5, appName = 'MERN App') {
-    return `Your ${appName} OTP is: ${otp}. Valid for ${expiryMinutes} minutes. Do not share this OTP with anyone.`;
+  static generateOTPMessage(otp, expiryMinutes = 5, appName = 'EAD Service') {
+    return `Your ${appName} verification code is: ${otp}. Valid for ${expiryMinutes} minutes. Do not share this code with anyone.`;
   }
 
   /**

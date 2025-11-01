@@ -3,6 +3,11 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
+const appointmentRoutes = require('./routes/appointments');
+const vehicleRoutes = require('./routes/vehicles');
+const serviceRoutes = require('./routes/services');
+const workLogRoutes = require('./routes/workLogs');
+const dashboardRoutes = require('./routes/dashboard');
 
 dotenv.config();
 const app = express();
@@ -14,8 +19,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Security middleware
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:3000');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:5173/');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
   next();
@@ -23,6 +28,11 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/appointments', appointmentRoutes);
+app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/work-logs', workLogRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -59,7 +69,13 @@ app.use((req, res) => {
       'POST /api/auth/customer/signup',
       'POST /api/auth/customer/send-otp',
       'POST /api/auth/customer/verify-otp',
-      'GET /api/auth/profile'
+      'GET /api/auth/profile',
+      'POST /api/appointments',
+      'GET /api/appointments',
+      'GET /api/vehicles',
+      'GET /api/services',
+      'GET /api/work-logs',
+      'GET /api/dashboard/stats'
     ]
   });
 });
