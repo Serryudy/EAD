@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Container, Form, Button } from 'react-bootstrap';
 import { FaSearch } from 'react-icons/fa';
+import profileImage from '../../assets/profile.png';
+import ProfileUploadSidebar from './ProfileUploadSidebar';
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -8,6 +10,24 @@ interface PageLayoutProps {
 }
 
 const PageLayout: React.FC<PageLayoutProps> = ({ children, showTopBar = true }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [currentProfileImage, setCurrentProfileImage] = useState(profileImage);
+
+  const handleImageUpload = (file: File) => {
+    console.log('Uploading file:', file);
+    // TODO: Implement actual upload logic to backend
+    // For now, just show the preview
+  };
+
+  const handleImageDelete = () => {
+    console.log('Deleting profile picture');
+    // TODO: Implement actual delete logic
+    setCurrentProfileImage(profileImage); // Reset to default profile image
+  };
+
+  const handleProfileClick = () => {
+    setIsSidebarOpen(true);
+  };
   return (
     <>
       {showTopBar && (
@@ -31,16 +51,20 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, showTopBar = true }) 
               />
             </div>
           </div>
-          <div className="d-flex align-items-center" style={{ gap: '1rem' }}>
+          <div className="d-flex align-items-center" style={{ gap: '1rem', color: '#FF0000' }}>
             <Button variant="link" className="text-dark text-decoration-none">
-              Login
+              Log out
             </Button>
-            <div
+            <img
+              src={currentProfileImage || profileImage}
+              alt="Profile"
               className="rounded-circle"
+              onClick={handleProfileClick}
               style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: '#fd7e14'
+                width: '38px',
+                height: '38px',
+                objectFit: 'cover',
+                cursor: 'pointer'
               }}
             />
           </div>
@@ -52,6 +76,15 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, showTopBar = true }) 
           {children}
         </Container>
       </div>
+
+      {/* Profile Upload Sidebar */}
+      <ProfileUploadSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        currentImage={currentProfileImage || profileImage}
+        onImageUpload={handleImageUpload}
+        onImageDelete={handleImageDelete}
+      />
     </>
   );
 };
