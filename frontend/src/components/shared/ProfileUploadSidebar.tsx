@@ -91,7 +91,7 @@ const ProfileUploadSidebar: React.FC<ProfileUploadSidebarProps> = ({
       >
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center p-2 p-md-3 border-bottom">
-          <h5 className="mb-0 fs-6 fs-md-5">Profile Picture</h5>
+          <h5 className="mb-0 fs-6 fs-md-5">Profile</h5>
           <Button
             variant="link"
             className="text-dark p-0"
