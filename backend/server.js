@@ -1,5 +1,8 @@
-const express = require('express');
+// Load environment variables FIRST before anything else
 const dotenv = require('dotenv');
+dotenv.config();
+
+const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -10,8 +13,9 @@ const serviceRoutes = require('./routes/services');
 const workLogRoutes = require('./routes/workLogs');
 const dashboardRoutes = require('./routes/dashboard');
 const serviceRecordRoutes = require('./routes/serviceRecords');
+const profileRoutes = require('./routes/profile');
 
-dotenv.config();
+
 const app = express();
 
 // Middleware
@@ -40,6 +44,7 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/work-logs', workLogRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/service-records', serviceRecordRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

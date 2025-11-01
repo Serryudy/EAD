@@ -628,6 +628,41 @@ class ApiService {
 
     return this.handleResponse(response);
   }
+
+  // Profile Picture APIs
+  static async uploadProfilePicture(file: File): Promise<ApiResponse<{ profilePicture: string }>> {
+    const formData = new FormData();
+    formData.append('profilePicture', file);
+
+    const token = localStorage.getItem('accessToken');
+    const response = await fetch(`${API_BASE_URL}/profile/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    return this.handleResponse(response);
+  }
+
+  static async deleteProfilePicture(): Promise<ApiResponse> {
+    const response = await fetch(`${API_BASE_URL}/profile/delete`, {
+      method: 'DELETE',
+      headers: this.getHeaders(true),
+    });
+
+    return this.handleResponse(response);
+  }
+
+  static async getProfilePicture(): Promise<ApiResponse<{ profilePicture: string | null }>> {
+    const response = await fetch(`${API_BASE_URL}/profile/picture`, {
+      method: 'GET',
+      headers: this.getHeaders(true),
+    });
+
+    return this.handleResponse(response);
+  }
 }
 
 export default ApiService;
