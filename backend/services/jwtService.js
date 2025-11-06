@@ -7,7 +7,7 @@ class JWTService {
    * @param {string} expiresIn - Token expiration time
    * @returns {string} JWT token
    */
-  static generateToken(payload, expiresIn = process.env.JWT_EXPIRES_IN || '7d') {
+  static generateToken(payload, expiresIn = process.env.JWT_EXPIRES_IN || '70d') {
     try {
       return jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn,
@@ -32,7 +32,7 @@ class JWTService {
       type: 'access'
     };
     
-    return this.generateToken(payload, process.env.JWT_ACCESS_EXPIRES_IN || '15m');
+    return this.generateToken(payload, process.env.JWT_ACCESS_EXPIRES_IN || '30d');
   }
 
   /**
@@ -47,7 +47,7 @@ class JWTService {
       type: 'refresh'
     };
     
-    return this.generateToken(payload, process.env.JWT_REFRESH_EXPIRES_IN || '7d');
+    return this.generateToken(payload, process.env.JWT_REFRESH_EXPIRES_IN || '70d');
   }
 
   /**
@@ -142,6 +142,32 @@ class JWTService {
     if (parts.length !== 2 || parts[0] !== 'Bearer') return null;
     
     return parts[1];
+  }
+
+  /**
+   * Extract token from HTTP-only cookie
+   * @param {Object} cookies - Request cookies object
+   * @returns {string|null} Extracted token or null
+   */
+  static extractTokenFromCookie(cookies) {
+    if (!cookies || !cookies.accessToken) return null;
+    return cookies.accessToken;
+  }
+
+  /**
+   * Extract token from either cookie or Authorization header
+   * Prioritizes cookie over header for better security
+   * @param {Object} req - Express request object
+   * @returns {string|null} Extracted token or null
+   */
+  static extractToken(req) {
+    // First try to get from cookie (more secure)
+    const cookieToken = this.extractTokenFromCookie(req.cookies);
+    if (cookieToken) return cookieToken;
+    
+    // Fallback to Authorization header (for API clients)
+    const authHeader = req.headers.authorization;
+    return this.extractTokenFromHeader(authHeader);
   }
 
   /**

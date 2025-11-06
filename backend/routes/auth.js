@@ -6,7 +6,8 @@ const {
   authRateLimit,
   otpRateLimit,
   employeeOnly,
-  customerOnly
+  customerOnly,
+  adminOnly
 } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -15,8 +16,40 @@ const router = express.Router();
 router.use(authRateLimit());
 
 // ========================
+// ADMIN ROUTES
+// ========================
+
+/**
+ * @route   POST /api/auth/admin/create
+ * @desc    Create new admin account (Admin only - for creating other admins)
+ * @access  Private (Admin only)
+ */
+router.post('/admin/create', authenticateToken, adminOnly, AuthController.adminRegister);
+
+/**
+ * @route   POST /api/auth/admin/login
+ * @desc    Admin login with username and password
+ * @access  Public
+ */
+router.post('/admin/login', AuthController.adminLogin);
+
+/**
+ * @route   GET /api/auth/admin/profile
+ * @desc    Get admin profile
+ * @access  Private (Admin only)
+ */
+router.get('/admin/profile', authenticateToken, AuthController.getAdminProfile);
+
+// ========================
 // EMPLOYEE ROUTES
 // ========================
+
+/**
+ * @route   POST /api/auth/employee/create
+ * @desc    Admin creates a new employee account
+ * @access  Private (Admin only)
+ */
+router.post('/employee/create', authenticateToken, adminOnly, AuthController.employeeRegister);
 
 /**
  * @route   POST /api/auth/employee/register

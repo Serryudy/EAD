@@ -1,35 +1,49 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Sidemenu from './components/Sidemenu';
-import Dashboard from './components/Dashboard/Dashboard';
-import BookAppointmentForm from './components/BookAppointment/BookAppointmentForm';
-import MyCalendar from './components/Calendar/MyCalendar';
-import EmployeeDashboard from './components/Dashboard/EmployeeDashboad' ;
-import EmployeeAppoinment from './components/Dashboard/EmployeeAppoinment';
-import EmployeeAppoinmentDetails from './components/Dashboard/EmployeeAppoinmentDetails'; 
-import EmpNotes from './components/Dashboard/EmpNotes';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { Layout } from './components/layouts/Layout';
+import { LoginPage } from './components/auth/LoginPage';
+import { SignupPage } from './components/auth/SignupPage';
+import { EmployeeLoginPage } from './components/auth/EmployeeLoginPage';
+import { AdminLoginPage } from './components/auth/AdminLoginPage';
+import { CustomerDashboardPage } from './pages/CustomerDashboardPage';
+import { AppointmentBookingPage } from './pages/AppointmentBookingPage';
+import { ServiceProgressPage } from './pages/ServiceProgressPage';
+import { EmployeeDashboardPage } from './pages/EmployeeDashboardPage';
+import { AdminPanelPage } from './pages/AdminPanelPage';
+import './App.css';
 
-const App: React.FC = () => {
+function App() {
   return (
-    <Router>
-      <div className="d-flex" style={{ height: '100vh', backgroundColor: '#f8f9fa' }}>
-        <Sidemenu />
-        
-        <main className="flex-fill overflow-auto">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/book-appointment" element={<BookAppointmentForm />} />
-            <Route path="/my-calendar" element={<MyCalendar />} />
-            <Route path='/employeedashboard' element={<EmployeeDashboard/>}/>
-            <Route path='/employeeappointment' element={<EmployeeAppoinment/>}/>
-            <Route path='/empnotes' element={<EmpNotes/>}/>
-            <Route path='/employeeappointment/:appointmentId' element={<EmployeeAppoinmentDetails/>}/>
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/employee/login" element={<EmployeeLoginPage />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          
+          {/* Routes with layout - no protection for now */}
+          <Route element={<Layout />}>
+            {/* Customer routes */}
+            <Route path="/dashboard" element={<CustomerDashboardPage />} />
+            <Route path="/appointments/book" element={<AppointmentBookingPage />} />
+            <Route path="/service/progress" element={<ServiceProgressPage />} />
+            
+            {/* Employee routes */}
+            <Route path="/employee/dashboard" element={<EmployeeDashboardPage />} />
+            
+            {/* Admin routes */}
+            <Route path="/admin/panel" element={<AdminPanelPage />} />
+          </Route>
+          
+          {/* Default redirect */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
-};
+}
 
 export default App;
