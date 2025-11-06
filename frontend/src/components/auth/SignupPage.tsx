@@ -57,31 +57,58 @@ export function SignupPage() {
         email: email || undefined,
       };
 
+      // Signup user first
       await signup(signupData);
       
-      // Wait a moment to ensure sessionStorage is fully written
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait a moment to ensure sessionStorage is fully written with token
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      // If signup successful and vehicle details provided, add vehicle
+      // After successful signup, if vehicle details are provided, create the vehicle
+      let vehicleError = '';
       if (vehicleMake && vehicleModel && licensePlate) {
-        console.log('🚗 Attempting to add vehicle...');
+        console.log('🚗 Attempting to add vehicle after signup...');
         const token = sessionStorage.getItem('authToken');
-        console.log('Token available:', !!token);
+        console.log('📝 Token available:', !!token);
+        console.log('📝 Token value:', token?.substring(0, 50) + '...');
         
-        try {
-          await vehicleApi.addVehicle({
-            make: vehicleMake,
-            model: vehicleModel,
-            year: parseInt(vehicleYear) || new Date().getFullYear(),
-            licensePlate,
-          });
-          console.log('✅ Vehicle added successfully');
-        } catch (vehicleError) {
-          console.error('❌ Failed to add vehicle:', vehicleError);
-          // Don't show error, continue with success
+        if (token) {
+          try {
+            const vehicleData = {
+              make: vehicleMake,
+              model: vehicleModel,
+              year: parseInt(vehicleYear) || new Date().getFullYear(),
+              licensePlate,
+            };
+            
+            console.log('🚗 Creating vehicle with data:', vehicleData);
+            const vehicleResponse = await vehicleApi.addVehicle(vehicleData);
+            
+            if (vehicleResponse.success) {
+              console.log('✅ Vehicle created successfully:', vehicleResponse.data);
+            } else {
+              console.warn('⚠️ Vehicle creation response:', vehicleResponse.message);
+              vehicleError = `Note: ${vehicleResponse.message}. You can add vehicle from profile.`;
+            }
+          } catch (error: any) {
+            console.error('❌ Failed to add vehicle:', error);
+            console.error('Error details:', error.message);
+            vehicleError = `Vehicle creation failed: ${error.message}. You can add it from your profile.`;
+          }
+        } else {
+          console.error('❌ No auth token found after signup');
+          vehicleError = 'Authentication issue. Please try adding vehicle from your profile.';
         }
+      } else {
+        console.log('ℹ️ No vehicle details provided during signup');
       }
 
+      // Show any vehicle errors briefly before success
+      if (vehicleError) {
+        setError(vehicleError);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+
+      // Show success screen
       setStep('success');
       setTimeout(() => navigate('/dashboard'), 2000);
     } catch (error: any) {
@@ -175,11 +202,17 @@ export function SignupPage() {
               </div>
 
               <div className="pt-4 border-t border-slate-200">
-                <h3 className="text-lg font-semibold text-[#03045e] mb-4">Vehicle Details (Optional)</h3>
+                <h3 className="text-lg font-semibold text-[#03045e] mb-4 flex items-center gap-2">
+                  <Car className="h-5 w-5" />
+                  Vehicle Details (Optional)
+                </h3>
+                <p className="text-sm text-slate-500 mb-4">
+                  Add your vehicle details now or you can add them later from your profile
+                </p>
                 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="make">Make</Label>
+                    <Label htmlFor="make">Make *</Label>
                     <Input
                       id="make"
                       placeholder="e.g., Toyota"
@@ -191,7 +224,7 @@ export function SignupPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="model">Model</Label>
+                    <Label htmlFor="model">Model *</Label>
                     <Input
                       id="model"
                       placeholder="e.g., Camry"
@@ -203,7 +236,7 @@ export function SignupPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="year">Year</Label>
+                    <Label htmlFor="year">Year (Optional)</Label>
                     <Input
                       id="year"
                       type="number"
@@ -212,11 +245,13 @@ export function SignupPage() {
                       onChange={(e) => setVehicleYear(e.target.value)}
                       className="h-12"
                       disabled={loading}
+                      min="1900"
+                      max={new Date().getFullYear() + 1}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="plate">License Plate</Label>
+                    <Label htmlFor="plate">License Plate *</Label>
                     <Input
                       id="plate"
                       placeholder="ABC-1234"
@@ -227,6 +262,9 @@ export function SignupPage() {
                     />
                   </div>
                 </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  * Required fields if you want to add a vehicle during signup
+                </p>
               </div>
 
               {error && (

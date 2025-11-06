@@ -3,6 +3,7 @@ import { User, Mail, Phone, CreditCard, Car, Plus, X, Save, Edit } from 'lucide-
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
@@ -94,16 +95,24 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
     try {
       setLoading(true);
       console.log('🚗 Loading vehicles...');
-      const token = sessionStorage.getItem('authToken');
-      console.log('Token available:', !!token, 'Token value:', token?.substring(0, 20) + '...');
+      console.log('🍪 Cookies will be sent automatically with credentials: include');
       
       const response = await vehicleApi.getUserVehicles();
-      console.log('✅ Vehicles loaded:', response);
+      console.log('✅ Vehicles API response:', response);
+      
       if (response.success) {
+        console.log(`📋 Setting ${response.data.length} vehicles to state`);
         setVehicles(response.data);
+      } else {
+        console.warn('⚠️ API returned success: false', response.message);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to load vehicles:', error);
+      console.error('❌ Error message:', error.message);
+      
+      if (error.message?.includes('No token') || error.message?.includes('Unauthorized')) {
+        console.log('⚠️ Authentication issue - Please logout and login again');
+      }
     } finally {
       setLoading(false);
     }
@@ -246,6 +255,9 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl text-[#03045e]">Profile Information</DialogTitle>
+          <DialogDescription className="text-slate-600">
+            Manage your personal information and vehicles
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">

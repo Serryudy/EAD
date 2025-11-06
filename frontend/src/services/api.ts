@@ -84,7 +84,7 @@ async function apiCall<T>(
     'Content-Type': 'application/json',
   };
 
-  // Get token from sessionStorage if available
+  // Get token from sessionStorage if available (fallback)
   const token = sessionStorage.getItem('authToken');
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
@@ -92,6 +92,7 @@ async function apiCall<T>(
 
   const config: RequestInit = {
     ...options,
+    credentials: 'include', // Include HTTP-only cookies in requests
     headers: {
       ...defaultHeaders,
       ...options.headers,
@@ -174,21 +175,11 @@ export const authApi = {
 
 // User API functions
 export const userApi = {
-  // Get current user profile
+  // Get current user profile from backend
   getProfile: async (): Promise<ApiResponse<UserDto>> => {
-    const token = sessionStorage.getItem('authToken');
-    const user = sessionStorage.getItem('user');
-    
-    if (!token || !user) {
-      throw new Error('Not authenticated');
-    }
-    
-    // Parse user from sessionStorage (already stored during login/signup)
-    return {
-      success: true,
-      message: 'Profile retrieved',
-      data: JSON.parse(user)
-    };
+    return apiCall<UserDto>('/profile', {
+      method: 'GET',
+    });
   },
 
   // Update user profile

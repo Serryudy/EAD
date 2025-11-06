@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { authApi, type UserDto, type CustomerSignupDto } from '../services/api';
+import { authApi, userApi, type UserDto, type CustomerSignupDto } from '../services/api';
 
 export type UserRole = 'customer' | 'employee' | 'admin' | null;
 
@@ -58,16 +58,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Try to get user from sessionStorage
-        const token = sessionStorage.getItem('authToken');
-        const userData = sessionStorage.getItem('user');
+        console.log('🔍 Checking authentication on app start...');
         
-        if (token && userData) {
-          setUser(JSON.parse(userData));
+        // Try to fetch user profile from backend using HTTP-only cookie
+        const response = await userApi.getProfile();
+        
+        if (response.success && response.data) {
+          console.log('✅ User authenticated via cookie:', response.data);
+          const userData = convertUserDto(response.data);
+          setUser(userData);
+          
+          // Also update sessionStorage for backwards compatibility
+          sessionStorage.setItem('user', JSON.stringify(userData));
         }
       } catch (error) {
-        // If failed, user is not authenticated
-        console.log('No valid authentication found');
+        console.log('⚠️ No valid authentication found:', error);
+        // Clear any stale data
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('authToken');
+        setUser(null);
       } finally {
         setLoading(false);
       }

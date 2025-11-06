@@ -446,14 +446,15 @@ class AuthController {
         }
       }
 
-      // Create new customer
+      // Create new customer (verified by default since they're signing up directly)
       const customer = new User({
         role: 'customer',
         phoneNumber: formattedPhone,
         firstName: firstName.trim(),
         lastName: lastName ? lastName.trim() : undefined,
         email: email ? email.trim().toLowerCase() : undefined,
-        nic: nic ? nic.trim().toUpperCase() : undefined
+        nic: nic ? nic.trim().toUpperCase() : undefined,
+        isVerified: true // Set as verified since they completed signup process
       });
 
       await customer.save();

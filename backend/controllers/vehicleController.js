@@ -4,6 +4,16 @@ const Appointment = require('../models/Appointment');
 // Create a new vehicle
 exports.createVehicle = async (req, res) => {
   try {
+    console.log('\n🚗 === VEHICLE CREATION REQUEST ===');
+    console.log('📋 Request body:', JSON.stringify(req.body, null, 2));
+    console.log('👤 Authenticated user:', req.user ? {
+      id: req.user._id,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      name: req.user.name,
+      role: req.user.role
+    } : 'NO USER');
+
     const {
       licensePlate,
       make,
@@ -18,9 +28,31 @@ exports.createVehicle = async (req, res) => {
       notes
     } = req.body;
 
-    // Get owner ID from authenticated user
-    const ownerId = req.user?.id || req.body.ownerId;
-    const ownerName = req.user?.name || req.body.ownerName;
+    // Get owner ID from authenticated user (MongoDB uses _id)
+    const ownerId = req.user?._id || req.body.ownerId;
+    
+    // Get owner name based on role (customers have firstName/lastName, employees have name)
+    let ownerName;
+    if (req.user) {
+      ownerName = req.user.name || `${req.user.firstName} ${req.user.lastName}`.trim();
+    }
+    ownerName = ownerName || req.body.ownerName;
+
+    console.log('🔍 Extracted data:');
+    console.log('  - ownerId:', ownerId);
+    console.log('  - ownerName:', ownerName);
+    console.log('  - licensePlate:', licensePlate);
+    console.log('  - make:', make);
+    console.log('  - model:', model);
+    console.log('  - year:', year);
+
+    if (!ownerId || !ownerName) {
+      console.log('❌ Missing required owner information');
+      return res.status(400).json({
+        success: false,
+        message: 'Owner information is required'
+      });
+    }
 
     // Check if vehicle already exists
     const existingVehicle = await Vehicle.findOne({ 
@@ -70,9 +102,16 @@ exports.createVehicle = async (req, res) => {
 // Get all vehicles
 exports.getAllVehicles = async (req, res) => {
   try {
+    console.log('\n🚗 === GET VEHICLES REQUEST ===');
+    console.log('👤 User:', req.user ? {
+      _id: req.user._id,
+      role: req.user.role,
+      firstName: req.user.firstName
+    } : 'NO USER');
+
     const { 
       ownerId, 
-      isActive = true, 
+      isActive, 
       page = 1, 
       limit = 10,
       search 
@@ -82,13 +121,18 @@ exports.getAllVehicles = async (req, res) => {
     
     // If user is a customer, only show their vehicles
     if (req.user && req.user.role === 'customer') {
-      query.ownerId = req.user.id;
+      query.ownerId = req.user._id; // MongoDB uses _id
     } else if (ownerId) {
       // Employees can filter by ownerId
       query.ownerId = ownerId;
     }
     
-    if (isActive !== undefined) query.isActive = isActive === 'true';
+    // Handle isActive filter - default to true (show active vehicles)
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true' || isActive === true;
+    } else {
+      query.isActive = true; // Default: only show active vehicles
+    }
     
     if (search) {
       query.$or = [
@@ -97,6 +141,8 @@ exports.getAllVehicles = async (req, res) => {
         { model: new RegExp(search, 'i') }
       ];
     }
+
+    console.log('🔍 Query:', JSON.stringify(query, null, 2));
 
     const skip = (page - 1) * limit;
 
@@ -111,6 +157,17 @@ exports.getAllVehicles = async (req, res) => {
       .limit(parseInt(limit));
 
     const total = await Vehicle.countDocuments(query);
+
+    console.log(`✅ Found ${vehicles.length} vehicles (total: ${total})`);
+    if (vehicles.length > 0) {
+      console.log('📋 First vehicle:', {
+        _id: vehicles[0]._id,
+        ownerId: vehicles[0].ownerId,
+        licensePlate: vehicles[0].licensePlate,
+        make: vehicles[0].make,
+        model: vehicles[0].model
+      });
+    }
 
     res.json({
       success: true,
