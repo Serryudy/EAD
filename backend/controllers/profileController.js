@@ -1,4 +1,4 @@
-const { Employee, Customer } = require('../models/User');
+const User = require('../models/User');
 const cloudinary = require('../config/cloudinary');
 
 // Upload profile picture
@@ -23,7 +23,7 @@ exports.uploadProfilePicture = async (req, res) => {
       path: req.file.path
     });
 
-    const userId = req.user.id; // From auth middleware
+    const userId = req.user._id; // From auth middleware
     const userRole = req.user.role; // From auth middleware
 
     console.log('👤 Processing upload for:', {
@@ -37,13 +37,8 @@ exports.uploadProfilePicture = async (req, res) => {
 
     console.log('☁️  Cloudinary upload successful:', publicId);
 
-    // Find user based on role
-    let user = null;
-    if (userRole === 'employee') {
-      user = await Employee.findById(userId);
-    } else if (userRole === 'customer') {
-      user = await Customer.findById(userId);
-    }
+    // Find user
+    const user = await User.findById(userId);
 
     if (!user) {
       console.log('❌ User not found, deleting uploaded image');
@@ -111,19 +106,14 @@ exports.deleteProfilePicture = async (req, res) => {
   try {
     console.log('🗑️  Delete profile picture started');
     
-    const userId = req.user.id; // From auth middleware
+    const userId = req.user._id; // From auth middleware
     const userRole = req.user.role; // From auth middleware
 
     console.log('   User ID:', userId);
     console.log('   User Role:', userRole);
 
-    // Find user based on role
-    let user = null;
-    if (userRole === 'employee') {
-      user = await Employee.findById(userId);
-    } else if (userRole === 'customer') {
-      user = await Customer.findById(userId);
-    }
+    // Find user
+    const user = await User.findById(userId);
 
     if (!user) {
       console.log('❌ User not found');
@@ -178,19 +168,14 @@ exports.getProfilePicture = async (req, res) => {
   try {
     console.log('🖼️  Get profile picture started');
     
-    const userId = req.user.id; // From auth middleware
+    const userId = req.user._id; // From auth middleware
     const userRole = req.user.role; // From auth middleware
 
     console.log('   User ID:', userId);
     console.log('   User Role:', userRole);
 
-    // Find user based on role
-    let user = null;
-    if (userRole === 'employee') {
-      user = await Employee.findById(userId).select('profilePicture');
-    } else if (userRole === 'customer') {
-      user = await Customer.findById(userId).select('profilePicture');
-    }
+    // Find user
+    const user = await User.findById(userId).select('profilePicture');
 
     if (!user) {
       console.log('❌ User not found');
@@ -213,6 +198,126 @@ exports.getProfilePicture = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching profile picture',
+      error: error.message
+    });
+  }
+};
+
+// Get user profile
+exports.getProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const userRole = req.user.role;
+
+    // Find user and exclude password
+    const user = await User.findById(userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching profile',
+      error: error.message
+    });
+  }
+};
+
+// Update user profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const userRole = req.user.role;
+    const { firstName, lastName, email, phoneNumber, nic, address } = req.body;
+
+    // Validation based on role
+    if (userRole === 'customer') {
+      if (!firstName || !phoneNumber) {
+        return res.status(400).json({
+          success: false,
+          message: 'First name and phone number are required'
+        });
+      }
+    } else if (userRole === 'employee') {
+      if (!firstName || !email) {
+        return res.status(400).json({
+          success: false,
+          message: 'First name and email are required'
+        });
+      }
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if phoneNumber is being changed and if it's already taken (for customers)
+    if (phoneNumber && phoneNumber !== user.phoneNumber) {
+      const existingUser = await User.findOne({ 
+        phoneNumber, 
+        _id: { $ne: userId },
+        role: 'customer'
+      });
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already in use'
+        });
+      }
+    }
+
+    // Check if email is being changed and if it's already taken
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ 
+        email, 
+        _id: { $ne: userId }
+      });
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already in use'
+        });
+      }
+    }
+
+    // Update fields
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (email !== undefined) user.email = email;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
+    if (nic !== undefined) user.nic = nic;
+    if (address !== undefined) user.address = address;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: user
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating profile',
       error: error.message
     });
   }

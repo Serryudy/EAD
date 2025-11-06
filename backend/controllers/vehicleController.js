@@ -5,7 +5,7 @@ const Appointment = require('../models/Appointment');
 exports.createVehicle = async (req, res) => {
   try {
     const {
-      vehicleNumber,
+      licensePlate,
       make,
       model,
       year,
@@ -24,7 +24,7 @@ exports.createVehicle = async (req, res) => {
 
     // Check if vehicle already exists
     const existingVehicle = await Vehicle.findOne({ 
-      vehicleNumber: vehicleNumber.toUpperCase() 
+      licensePlate: licensePlate.toUpperCase() 
     });
 
     if (existingVehicle) {
@@ -37,7 +37,7 @@ exports.createVehicle = async (req, res) => {
     const vehicle = new Vehicle({
       ownerId,
       ownerName,
-      vehicleNumber: vehicleNumber.toUpperCase(),
+      licensePlate: licensePlate.toUpperCase(),
       make,
       model,
       year,
@@ -79,12 +79,20 @@ exports.getAllVehicles = async (req, res) => {
     } = req.query;
 
     const query = {};
-    if (ownerId) query.ownerId = ownerId;
+    
+    // If user is a customer, only show their vehicles
+    if (req.user && req.user.role === 'customer') {
+      query.ownerId = req.user.id;
+    } else if (ownerId) {
+      // Employees can filter by ownerId
+      query.ownerId = ownerId;
+    }
+    
     if (isActive !== undefined) query.isActive = isActive === 'true';
     
     if (search) {
       query.$or = [
-        { vehicleNumber: new RegExp(search, 'i') },
+        { licensePlate: new RegExp(search, 'i') },
         { make: new RegExp(search, 'i') },
         { model: new RegExp(search, 'i') }
       ];
@@ -93,7 +101,7 @@ exports.getAllVehicles = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const vehicles = await Vehicle.find(query)
-      .populate('ownerId', 'name email phone')
+      .populate('ownerId', 'name email mobile')
       .populate({
         path: 'serviceHistory',
         options: { limit: 5, sort: { createdAt: -1 } }
@@ -156,7 +164,7 @@ exports.getVehicleById = async (req, res) => {
 exports.getVehicleByNumber = async (req, res) => {
   try {
     const vehicle = await Vehicle.findOne({ 
-      vehicleNumber: req.params.vehicleNumber.toUpperCase() 
+      licensePlate: req.params.licensePlate.toUpperCase() 
     })
       .populate('ownerId', 'name email phone')
       .populate('serviceHistory');
@@ -193,8 +201,8 @@ exports.updateVehicle = async (req, res) => {
     delete updateData.serviceHistory;
     delete updateData.createdAt;
 
-    if (updateData.vehicleNumber) {
-      updateData.vehicleNumber = updateData.vehicleNumber.toUpperCase();
+    if (updateData.licensePlate) {
+      updateData.licensePlate = updateData.licensePlate.toUpperCase();
     }
 
     const vehicle = await Vehicle.findByIdAndUpdate(

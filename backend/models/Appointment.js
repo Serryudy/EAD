@@ -20,17 +20,12 @@ const appointmentSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: [
-      'Periodic Maintenance',
       'Oil Change',
-      'Brake Service',
-      'Tire Rotation',
-      'Engine Diagnostics',
-      'Full Service',
-      'Tire Replacement',
-      'AC Repair',
-      'Brake Check',
-      'Inspection',
-      'Other'
+      'Brake Inspection & Service',
+      'Tire Rotation & Alignment',
+      'Engine Tune Up',
+      'Full Diagnostics Scan',
+      'AC Recharge & Service'
     ]
   },
   serviceDescription: {

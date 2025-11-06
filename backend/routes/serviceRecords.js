@@ -1,29 +1,52 @@
 const express = require('express');
 const router = express.Router();
 const serviceRecordController = require('../controllers/serviceRecordController');
-const { protect } = require('../middlewares/auth');
+const { authenticateToken, employeeOnly, adminOnly, customerOnly } = require('../middlewares/auth');
 
-// All routes should be protected (employee access only)
+// ========================
+// ADMIN ROUTES
+// ========================
 
-// Start service for an appointment
-router.post('/start/:appointmentId', protect, serviceRecordController.startService);
+// Transfer appointment to service record (create service from appointment)
+router.post('/from-appointment/:id', authenticateToken, adminOnly, serviceRecordController.transferAppointmentToService);
 
-// Get service record by appointment ID
-router.get('/appointment/:appointmentId', protect, serviceRecordController.getServiceRecordByAppointment);
+// Update service status (pending → in-progress → completed)
+router.patch('/:id/status', authenticateToken, adminOnly, serviceRecordController.updateServiceStatus);
 
-// Get all service records
-router.get('/', protect, serviceRecordController.getAllServiceRecords);
+// Get all service records (with filters) - Admin version
+router.get('/admin/all', authenticateToken, adminOnly, serviceRecordController.getAllServiceRecords);
 
-// Get service record by ID
-router.get('/:id', protect, serviceRecordController.getServiceRecordById);
+// ========================
+// EMPLOYEE ROUTES
+// ========================
 
-// Update service progress
-router.patch('/:id/progress', protect, serviceRecordController.updateServiceProgress);
+// Get my assigned services
+router.get('/my-assignments', authenticateToken, employeeOnly, serviceRecordController.getMyAssignedServices);
 
-// Add work log to service record
-router.post('/:id/worklog', protect, serviceRecordController.addWorkLog);
+// Start service timer (only when status = in-progress)
+router.post('/:id/start-timer', authenticateToken, employeeOnly, serviceRecordController.startServiceTimer);
 
-// Complete service
-router.patch('/:id/complete', protect, serviceRecordController.completeService);
+// Stop service timer (only when status = in-progress)
+router.post('/:id/stop-timer', authenticateToken, employeeOnly, serviceRecordController.stopServiceTimer);
+
+// Update service progress (0-100% + live update message)
+router.patch('/:id/progress', authenticateToken, employeeOnly, serviceRecordController.updateServiceProgress);
+
+// Complete service (mark as completed)
+router.post('/:id/complete', authenticateToken, employeeOnly, serviceRecordController.completeService);
+
+// ========================
+// CUSTOMER ROUTES
+// ========================
+
+// Get my services
+router.get('/my-services', authenticateToken, customerOnly, serviceRecordController.getMyServices);
+
+// ========================
+// SHARED ROUTES
+// ========================
+
+// Get single service record details (all roles can view if authorized)
+router.get('/:id', authenticateToken, serviceRecordController.getServiceRecordById);
 
 module.exports = router;

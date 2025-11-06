@@ -13,7 +13,7 @@ const vehicleSchema = new mongoose.Schema({
   },
 
   // Vehicle Identification
-  vehicleNumber: {
+  licensePlate: {
     type: String,
     required: true,
     unique: true,
@@ -91,7 +91,7 @@ vehicleSchema.virtual('fullName').get(function() {
 
 // Virtual for display info
 vehicleSchema.virtual('displayInfo').get(function() {
-  return `${this.make} ${this.model} (${this.year}) • ${this.vehicleNumber}`;
+  return `${this.make} ${this.model} (${this.year}) • ${this.licensePlate}`;
 });
 
 module.exports = mongoose.model('Vehicle', vehicleSchema);

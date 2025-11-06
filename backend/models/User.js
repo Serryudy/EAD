@@ -1,50 +1,20 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// Employee Schema
-const employeeSchema = new mongoose.Schema({
-  employeeId: {
-    type: String,
-    required: [true, 'Employee ID is required'],
-    unique: true,
-    trim: true,
-    uppercase: true
-  },
-  name: {
-    type: String,
-    required: [true, 'Employee name is required'],
-    trim: true,
-    maxlength: [100, 'Name cannot be more than 100 characters']
-  },
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters'],
-    select: false
-  },
+// Unified User Schema for all roles (customer, employee, admin)
+const userSchema = new mongoose.Schema({
+  // Common fields
   role: {
     type: String,
-    default: 'employee',
-    immutable: true
-  },
-  department: {
-    type: String,
-    trim: true
-  },
-  position: {
-    type: String,
-    trim: true
+    enum: ['customer', 'employee', 'admin'],
+    required: true,
+    default: 'customer'
   },
   isActive: {
     type: Boolean,
     default: true
   },
   lastLogin: Date,
-  loginAttempts: {
-    type: Number,
-    default: 0
-  },
-  lockUntil: Date,
   profilePicture: {
     type: String,
     default: null
@@ -52,30 +22,36 @@ const employeeSchema = new mongoose.Schema({
   profilePicturePublicId: {
     type: String,
     default: null
-  }
-}, {
-  timestamps: true
-});
+  },
 
-// Customer Schema
-const customerSchema = new mongoose.Schema({
-  name: {
+  // Customer-specific fields
+  firstName: {
     type: String,
-    required: [true, 'Customer name is required'],
     trim: true,
-    maxlength: [100, 'Name cannot be more than 100 characters']
+    maxlength: [50, 'First name cannot be more than 50 characters']
   },
-  mobile: {
+  lastName: {
     type: String,
-    required: [true, 'Mobile number is required'],
-    unique: true,
     trim: true,
-    match: [/^07[0-9]\d{7}$/, 'Please provide a valid Sri Lankan mobile number (e.g., 0771234567)']
+    maxlength: [50, 'Last name cannot be more than 50 characters']
   },
-  role: {
+  nic: {
     type: String,
-    default: 'customer',
-    immutable: true
+    trim: true,
+    sparse: true,
+    unique: true
+  },
+  email: {
+    type: String,
+    trim: true,
+    lowercase: true,
+    sparse: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email address']
+  },
+  phoneNumber: {
+    type: String,
+    trim: true,
+    match: [/^0\d{9}$/, 'Please provide a valid phone number']
   },
   isVerified: {
     type: Boolean,
@@ -94,33 +70,74 @@ const customerSchema = new mongoose.Schema({
     default: 0,
     select: false
   },
-  lastLogin: Date,
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  profilePicture: {
+
+  // Employee-specific fields
+  employeeId: {
     type: String,
-    default: null
+    trim: true,
+    uppercase: true,
+    sparse: true,
+    unique: true
   },
-  profilePicturePublicId: {
+  name: {
     type: String,
-    default: null
+    trim: true,
+    maxlength: [100, 'Name cannot be more than 100 characters']
+  },
+  password: {
+    type: String,
+    minlength: [6, 'Password must be at least 6 characters'],
+    select: false
+  },
+  department: {
+    type: String,
+    trim: true
+  },
+  position: {
+    type: String,
+    trim: true
+  },
+  loginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: Date,
+
+  // Admin-specific fields
+  username: {
+    type: String,
+    trim: true,
+    sparse: true,
+    unique: true
   }
+
 }, {
   timestamps: true
 });
 
-// Employee Schema Methods
+// Indexes
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ phoneNumber: 1 }, { sparse: true });
+userSchema.index({ employeeId: 1 }, { sparse: true });
+userSchema.index({ username: 1 }, { sparse: true });
+userSchema.index({ email: 1 }, { sparse: true });
 
-// Virtual for checking if employee account is locked
-employeeSchema.virtual('isLocked').get(function() {
+// Virtual for checking if account is locked
+userSchema.virtual('isLocked').get(function() {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
-// Pre-save middleware to hash employee password
-employeeSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
+// Virtual for full name (customers)
+userSchema.virtual('fullName').get(function() {
+  if (this.firstName && this.lastName) {
+    return `${this.firstName} ${this.lastName}`;
+  }
+  return this.name || '';
+});
+
+// Pre-save middleware to hash password (for employees and admins)
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password') || !this.password) {
     return next();
   }
   
@@ -133,21 +150,18 @@ employeeSchema.pre('save', async function(next) {
   }
 });
 
-// Instance method to check employee password (with bcrypt)
-employeeSchema.methods.comparePassword = async function(candidatePassword) {
+// Instance method to compare password
+userSchema.methods.comparePassword = async function(candidatePassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Instance method to handle failed login attempts for employee
-employeeSchema.methods.incLoginAttempts = function() {
+// Instance method to handle failed login attempts
+userSchema.methods.incLoginAttempts = function() {
   if (this.lockUntil && this.lockUntil < Date.now()) {
     return this.updateOne({
-      $unset: {
-        lockUntil: 1
-      },
-      $set: {
-        loginAttempts: 1
-      }
+      $unset: { lockUntil: 1 },
+      $set: { loginAttempts: 1 }
     });
   }
   
@@ -163,8 +177,8 @@ employeeSchema.methods.incLoginAttempts = function() {
   return this.updateOne(updates);
 };
 
-// Instance method to reset login attempts for employee
-employeeSchema.methods.resetLoginAttempts = function() {
+// Instance method to reset login attempts
+userSchema.methods.resetLoginAttempts = function() {
   return this.updateOne({
     $unset: {
       loginAttempts: 1,
@@ -173,43 +187,8 @@ employeeSchema.methods.resetLoginAttempts = function() {
   });
 };
 
-// Static method to find employee by credentials
-employeeSchema.statics.findByCredentials = async function(employeeId, password) {
-  const employee = await this.findOne({ 
-    employeeId: employeeId.toUpperCase(),
-    isActive: true 
-  }).select('+password');
-  
-  if (!employee) {
-    throw new Error('Invalid employee ID or password');
-  }
-
-  if (employee.isLocked) {
-    await employee.incLoginAttempts();
-    throw new Error('Account is temporarily locked due to too many failed login attempts');
-  }
-  
-  const isMatch = await employee.comparePassword(password);
-  
-  if (!isMatch) {
-    await employee.incLoginAttempts();
-    throw new Error('Invalid employee ID or password');
-  }
-  
-  if (employee.loginAttempts > 0) {
-    await employee.resetLoginAttempts();
-  }
-  
-  employee.lastLogin = new Date();
-  await employee.save();
-  
-  return employee;
-};
-
-// Customer Schema Methods
-
-// Instance method to generate OTP for customer
-customerSchema.methods.generateOTP = function() {
+// Instance method to generate OTP (for customers)
+userSchema.methods.generateOTP = function() {
   // Generate 6-digit OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   
@@ -220,8 +199,8 @@ customerSchema.methods.generateOTP = function() {
   return otp;
 };
 
-// Instance method to verify OTP for customer
-customerSchema.methods.verifyOTP = function(enteredOTP) {
+// Instance method to verify OTP (for customers)
+userSchema.methods.verifyOTP = function(enteredOTP) {
   if (!this.otpCode || !this.otpExpires) {
     throw new Error('No OTP generated for this number');
   }
@@ -255,15 +234,89 @@ customerSchema.methods.verifyOTP = function(enteredOTP) {
   return true;
 };
 
-// Static method to find or create customer by mobile
-customerSchema.statics.findOrCreateByMobile = async function(mobile, name = null) {
-  let customer = await this.findOne({ mobile, isActive: true });
+// Static method to find employee by credentials
+userSchema.statics.findEmployeeByCredentials = async function(employeeId, password) {
+  const employee = await this.findOne({ 
+    employeeId: employeeId.toUpperCase(),
+    role: 'employee',
+    isActive: true 
+  }).select('+password');
   
-  if (!customer && name) {
+  if (!employee) {
+    throw new Error('Invalid employee ID or password');
+  }
+
+  if (employee.isLocked) {
+    await employee.incLoginAttempts();
+    throw new Error('Account is temporarily locked due to too many failed login attempts');
+  }
+  
+  const isMatch = await employee.comparePassword(password);
+  
+  if (!isMatch) {
+    await employee.incLoginAttempts();
+    throw new Error('Invalid employee ID or password');
+  }
+  
+  if (employee.loginAttempts > 0) {
+    await employee.resetLoginAttempts();
+  }
+  
+  employee.lastLogin = new Date();
+  await employee.save();
+  
+  return employee;
+};
+
+// Static method to find admin by credentials
+userSchema.statics.findAdminByCredentials = async function(username, password) {
+  const admin = await this.findOne({ 
+    username: username,
+    role: 'admin',
+    isActive: true 
+  }).select('+password');
+  
+  if (!admin) {
+    throw new Error('Invalid username or password');
+  }
+
+  if (admin.isLocked) {
+    await admin.incLoginAttempts();
+    throw new Error('Account is temporarily locked due to too many failed login attempts');
+  }
+  
+  const isMatch = await admin.comparePassword(password);
+  
+  if (!isMatch) {
+    await admin.incLoginAttempts();
+    throw new Error('Invalid username or password');
+  }
+  
+  if (admin.loginAttempts > 0) {
+    await admin.resetLoginAttempts();
+  }
+  
+  admin.lastLogin = new Date();
+  await admin.save();
+  
+  return admin;
+};
+
+// Static method to find or create customer by phone number
+userSchema.statics.findOrCreateCustomerByPhone = async function(phoneNumber, firstName = null, lastName = null) {
+  let customer = await this.findOne({ 
+    phoneNumber, 
+    role: 'customer',
+    isActive: true 
+  });
+  
+  if (!customer && firstName) {
     // Create new customer during signup
     customer = new this({
-      mobile,
-      name: name.trim()
+      phoneNumber,
+      firstName: firstName.trim(),
+      lastName: lastName ? lastName.trim() : undefined,
+      role: 'customer'
     });
     await customer.save();
   }
@@ -275,11 +328,6 @@ customerSchema.statics.findOrCreateByMobile = async function(mobile, name = null
   return customer;
 };
 
-// Create models
-const Employee = mongoose.model('Employee', employeeSchema);
-const Customer = mongoose.model('Customer', customerSchema);
+const User = mongoose.model('User', userSchema);
 
-module.exports = {
-  Employee,
-  Customer
-};
+module.exports = User;

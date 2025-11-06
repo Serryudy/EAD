@@ -1,4 +1,4 @@
-const { Employee, Customer } = require('../models/User');
+const User = require('../models/User');
 const JWTService = require('../services/jwtService');
 const smsService = require('../services/emailService'); // Now SMS service
 const OTPService = require('../services/otpService');
@@ -24,7 +24,7 @@ class AuthController {
       }
 
       // Find employee and validate credentials
-      const employee = await Employee.findByCredentials(employeeId.trim(), password);
+      const employee = await User.findEmployeeByCredentials(employeeId.trim(), password);
 
       // Generate tokens
       const tokens = JWTService.generateTokenPair(employee);
@@ -94,8 +94,9 @@ class AuthController {
       }
 
       // Check if employee ID already exists
-      const existingEmployee = await Employee.findOne({ 
-        employeeId: employeeId.trim().toUpperCase() 
+      const existingEmployee = await User.findOne({ 
+        employeeId: employeeId.trim().toUpperCase(),
+        role: 'employee'
       });
 
       if (existingEmployee) {
@@ -106,7 +107,8 @@ class AuthController {
       }
 
       // Create new employee
-      const employee = new Employee({
+      const employee = new User({
+        role: 'employee',
         employeeId: employeeId.trim().toUpperCase(),
         name: name.trim(),
         password: password.trim(),
@@ -193,67 +195,307 @@ class AuthController {
   }
 
   // ========================
+  // ADMIN AUTHENTICATION
+  // ========================
+
+  /**
+   * Admin login with username and password
+   */
+  static async adminLogin(req, res) {
+    try {
+      const { username, password } = req.body;
+
+      // Validation
+      if (!username || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide username and password'
+        });
+      }
+
+      // Find admin and validate credentials
+      const admin = await User.findAdminByCredentials(username.trim(), password);
+
+      // Generate tokens
+      const tokens = JWTService.generateTokenPair(admin);
+
+      // Set HTTP-only cookies
+      res.cookie('accessToken', tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      });
+
+      res.cookie('refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 70 * 24 * 60 * 60 * 1000 // 70 days
+      });
+
+      res.json({
+        success: true,
+        message: 'Admin login successful',
+        data: {
+          user: {
+            id: admin._id,
+            username: admin.username,
+            name: admin.name,
+            role: admin.role,
+            lastLogin: admin.lastLogin
+          },
+          ...tokens
+        }
+      });
+
+    } catch (error) {
+      console.error('Admin login error:', error);
+
+      res.status(401).json({
+        success: false,
+        message: error.message || 'Invalid admin credentials'
+      });
+    }
+  }
+
+  /**
+   * Admin registration - Create new admin account (Super Admin only or initial setup)
+   */
+  static async adminRegister(req, res) {
+    try {
+      const { username, password, name } = req.body;
+
+      // Validation
+      if (!username || !password || !name) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide username, password, and name'
+        });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 8 characters long'
+        });
+      }
+
+      // Check if username already exists
+      const existingAdmin = await User.findOne({ 
+        username: username.trim().toLowerCase(),
+        role: 'admin'
+      });
+
+      if (existingAdmin) {
+        return res.status(409).json({
+          success: false,
+          message: 'Admin username already exists'
+        });
+      }
+
+      // Create new admin
+      const admin = new User({
+        role: 'admin',
+        username: username.trim().toLowerCase(),
+        name: name.trim(),
+        password: password.trim(),
+        isActive: true
+      });
+
+      await admin.save();
+
+      res.status(201).json({
+        success: true,
+        message: 'Admin account created successfully',
+        data: {
+          user: {
+            _id: admin._id,
+            username: admin.username,
+            name: admin.name,
+            role: admin.role,
+            isActive: admin.isActive
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Admin registration error:', error);
+
+      if (error.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          message: 'Admin username already exists'
+        });
+      }
+
+      if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors).map(err => err.message);
+        return res.status(400).json({
+          success: false,
+          message: messages.join(', ')
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Admin registration failed. Please try again.'
+      });
+    }
+  }
+
+  /**
+   * Get admin profile
+   */
+  static async getAdminProfile(req, res) {
+    try {
+      const admin = req.user;
+
+      res.json({
+        success: true,
+        data: {
+          user: {
+            id: admin._id,
+            username: admin.username,
+            name: admin.name,
+            role: admin.role,
+            isActive: admin.isActive,
+            lastLogin: admin.lastLogin,
+            createdAt: admin.createdAt,
+            updatedAt: admin.updatedAt
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Get admin profile error:', error);
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get admin profile'
+      });
+    }
+  }
+
+  // ========================
   // CUSTOMER AUTHENTICATION
   // ========================
 
   /**
-   * Customer signup with mobile and name
+   * Customer signup with phone number and name
    */
   static async customerSignup(req, res) {
     try {
-      const { mobile, name } = req.body;
+      const { phoneNumber, firstName, lastName, email, nic } = req.body;
 
       // Validation
-      if (!mobile || !name) {
+      if (!phoneNumber || !firstName) {
         return res.status(400).json({
           success: false,
-          message: 'Please provide mobile number and name'
+          message: 'Please provide phone number and first name'
         });
       }
 
-      // Validate mobile number format
-      if (!OTPService.isValidMobile(mobile)) {
+      // Validate phone number format
+      if (!OTPService.isValidMobile(phoneNumber)) {
         return res.status(400).json({
           success: false,
-          message: 'Please provide a valid 10-digit mobile number'
+          message: 'Please provide a valid 10-digit phone number'
         });
       }
 
-      const formattedMobile = OTPService.formatMobile(mobile);
+      const formattedPhone = OTPService.formatMobile(phoneNumber);
 
-      // Check if customer already exists
-      const existingCustomer = await Customer.findOne({ mobile: formattedMobile });
-      if (existingCustomer) {
+      // Check if phone number already exists
+      const existingPhone = await User.findOne({ 
+        phoneNumber: formattedPhone,
+        role: 'customer'
+      });
+      if (existingPhone) {
         return res.status(409).json({
           success: false,
-          message: 'Customer already exists with this mobile number. Please login instead.'
+          message: 'A user with this phone number already exists in the system. Please login instead.'
         });
+      }
+
+      // Check if NIC already exists (only if NIC is provided)
+      if (nic && nic.trim()) {
+        const existingNIC = await User.findOne({ 
+          nic: nic.trim().toUpperCase(),
+          role: 'customer'
+        });
+        if (existingNIC) {
+          return res.status(409).json({
+            success: false,
+            message: 'A user with this NIC already exists in the system.'
+          });
+        }
+      }
+
+      // Check if email already exists (only if email is provided)
+      if (email && email.trim()) {
+        const existingEmail = await User.findOne({ 
+          email: email.trim().toLowerCase(),
+          role: 'customer'
+        });
+        if (existingEmail) {
+          return res.status(409).json({
+            success: false,
+            message: 'A user with this email already exists in the system.'
+          });
+        }
       }
 
       // Create new customer
-      const customer = new Customer({
-        mobile: formattedMobile,
-        name: name.trim()
+      const customer = new User({
+        role: 'customer',
+        phoneNumber: formattedPhone,
+        firstName: firstName.trim(),
+        lastName: lastName ? lastName.trim() : undefined,
+        email: email ? email.trim().toLowerCase() : undefined,
+        nic: nic ? nic.trim().toUpperCase() : undefined
       });
 
       await customer.save();
 
       // Send welcome SMS
       try {
-        await smsService.sendWelcomeSMS(formattedMobile, name.trim());
+        await smsService.sendWelcomeSMS(formattedPhone, firstName.trim());
       } catch (smsError) {
         console.error('Failed to send welcome SMS:', smsError);
         // Continue with signup even if SMS fails
       }
 
+      // Generate JWT tokens for immediate login
+      const tokens = JWTService.generateTokenPair(customer);
+
+      // Set HTTP-only cookies
+      res.cookie('accessToken', tokens.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      });
+
+      res.cookie('refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 70 * 24 * 60 * 60 * 1000 // 70 days
+      });
+
       res.status(201).json({
         success: true,
-        message: 'Customer account created successfully. You can now login with your mobile number.',
+        message: 'Customer account created successfully.',
         data: {
+          token: tokens.accessToken,
           user: {
-            id: customer._id,
-            name: customer.name,
-            mobile: OTPService.maskMobile(customer.mobile),
+            _id: customer._id,
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            phoneNumber: customer.phoneNumber,
+            email: customer.email,
+            nic: customer.nic,
             role: customer.role,
             isVerified: customer.isVerified
           }
@@ -284,28 +526,28 @@ class AuthController {
    */
   static async customerSendOTP(req, res) {
     try {
-      const { mobile } = req.body;
+      const { phoneNumber } = req.body;
 
       // Validation
-      if (!mobile) {
+      if (!phoneNumber) {
         return res.status(400).json({
           success: false,
-          message: 'Please provide mobile number'
+          message: 'Please provide phone number'
         });
       }
 
-      // Validate mobile number format
-      if (!OTPService.isValidMobile(mobile)) {
+      // Validate phone number format
+      if (!OTPService.isValidMobile(phoneNumber)) {
         return res.status(400).json({
           success: false,
-          message: 'Please provide a valid 10-digit mobile number'
+          message: 'Please provide a valid 10-digit phone number'
         });
       }
 
-      const formattedMobile = OTPService.formatMobile(mobile);
+      const formattedPhone = OTPService.formatMobile(phoneNumber);
 
       // Check rate limit
-      const rateLimit = OTPService.checkRateLimit(formattedMobile);
+      const rateLimit = OTPService.checkRateLimit(formattedPhone);
       if (!rateLimit.allowed) {
         return res.status(429).json({
           success: false,
@@ -314,7 +556,18 @@ class AuthController {
       }
 
       // Find customer
-      const customer = await Customer.findOrCreateByMobile(formattedMobile);
+      const customer = await User.findOne({
+        phoneNumber: formattedPhone,
+        role: 'customer',
+        isActive: true
+      });
+
+      if (!customer) {
+        return res.status(404).json({
+          success: false,
+          message: 'Customer not found. Please sign up first.'
+        });
+      }
 
       // Generate OTP
       const otp = customer.generateOTP();
@@ -322,7 +575,7 @@ class AuthController {
 
       // Send OTP via SMS
       try {
-        await smsService.sendCustomerOTP(formattedMobile, otp, customer.name);
+        await smsService.sendCustomerOTP(formattedPhone, otp, customer.firstName);
       } catch (smsError) {
         console.error('Failed to send OTP SMS:', smsError);
         
@@ -341,7 +594,7 @@ class AuthController {
         success: true,
         message: 'OTP sent successfully',
         data: {
-          mobile: OTPService.maskMobile(formattedMobile),
+          phoneNumber: OTPService.maskMobile(formattedPhone),
           otpSent: true,
           expiresIn: 300 // 5 minutes in seconds
         }
@@ -362,21 +615,22 @@ class AuthController {
    */
   static async customerVerifyOTP(req, res) {
     try {
-      const { mobile, otp } = req.body;
+      const { phoneNumber, otp } = req.body;
 
       // Validation
-      if (!mobile || !otp) {
+      if (!phoneNumber || !otp) {
         return res.status(400).json({
           success: false,
-          message: 'Please provide mobile number and OTP'
+          message: 'Please provide phone number and OTP'
         });
       }
 
-      const formattedMobile = OTPService.formatMobile(mobile);
+      const formattedPhone = OTPService.formatMobile(phoneNumber);
 
       // Find customer
-      const customer = await Customer.findOne({ 
-        mobile: formattedMobile,
+      const customer = await User.findOne({ 
+        phoneNumber: formattedPhone,
+        role: 'customer',
         isActive: true 
       }).select('+otpCode +otpExpires +otpAttempts');
 
@@ -423,8 +677,11 @@ class AuthController {
         data: {
           user: {
             id: customer._id,
-            name: customer.name,
-            mobile: OTPService.maskMobile(customer.mobile),
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            phoneNumber: OTPService.maskMobile(customer.phoneNumber),
+            email: customer.email,
+            nic: customer.nic,
             role: customer.role,
             isVerified: customer.isVerified,
             lastLogin: customer.lastLogin
@@ -455,8 +712,11 @@ class AuthController {
         data: {
           user: {
             id: customer._id,
-            name: customer.name,
-            mobile: OTPService.maskMobile(customer.mobile),
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            phoneNumber: customer.phoneNumber ? OTPService.maskMobile(customer.phoneNumber) : null,
+            email: customer.email,
+            nic: customer.nic,
             role: customer.role,
             isVerified: customer.isVerified,
             isActive: customer.isActive,
@@ -482,19 +742,18 @@ class AuthController {
    */
   static async updateCustomerProfile(req, res) {
     try {
-      const { name } = req.body;
+      const { firstName, lastName, email, nic } = req.body;
       const customerId = req.user._id;
 
-      if (!name || !name.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Name is required'
-        });
-      }
+      const updateData = {};
+      if (firstName && firstName.trim()) updateData.firstName = firstName.trim();
+      if (lastName !== undefined) updateData.lastName = lastName ? lastName.trim() : undefined;
+      if (email !== undefined) updateData.email = email ? email.trim() : undefined;
+      if (nic !== undefined) updateData.nic = nic ? nic.trim() : undefined;
 
-      const customer = await Customer.findByIdAndUpdate(
+      const customer = await User.findByIdAndUpdate(
         customerId,
-        { name: name.trim() },
+        updateData,
         { new: true, runValidators: true }
       );
 
@@ -511,8 +770,11 @@ class AuthController {
         data: {
           user: {
             id: customer._id,
-            name: customer.name,
-            mobile: OTPService.maskMobile(customer.mobile),
+            firstName: customer.firstName,
+            lastName: customer.lastName,
+            phoneNumber: customer.phoneNumber ? OTPService.maskMobile(customer.phoneNumber) : null,
+            email: customer.email,
+            nic: customer.nic,
             role: customer.role,
             isVerified: customer.isVerified,
             updatedAt: customer.updatedAt
@@ -578,10 +840,18 @@ class AuthController {
             department: user.department,
             position: user.position
           }
+        : user.role === 'admin'
+        ? {
+            id: user._id,
+            username: user.username,
+            name: user.name,
+            role: user.role
+          }
         : {
             id: user._id,
-            name: user.name,
-            mobile: OTPService.maskMobile(user.mobile),
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phoneNumber: user.phoneNumber ? OTPService.maskMobile(user.phoneNumber) : null,
             role: user.role,
             isVerified: user.isVerified
           };
@@ -655,6 +925,8 @@ class AuthController {
         return AuthController.getEmployeeProfile(req, res);
       } else if (user.role === 'customer') {
         return AuthController.getCustomerProfile(req, res);
+      } else if (user.role === 'admin') {
+        return AuthController.getAdminProfile(req, res);
       }
 
       res.status(400).json({
@@ -677,33 +949,35 @@ class AuthController {
   // ========================
 
   /**
-   * Get all customers (Employee only)
+   * Get all customers (Admin/Employee only)
    */
   static async getAllCustomers(req, res) {
     try {
       const { page = 1, limit = 10, search = '' } = req.query;
 
-      const query = search 
-        ? { 
-            $or: [
-              { name: { $regex: search, $options: 'i' } },
-              { mobile: { $regex: search, $options: 'i' } }
-            ]
-          }
-        : {};
+      const query = { 
+        role: 'customer',
+        ...(search && {
+          $or: [
+            { firstName: { $regex: search, $options: 'i' } },
+            { lastName: { $regex: search, $options: 'i' } },
+            { phoneNumber: { $regex: search, $options: 'i' } }
+          ]
+        })
+      };
 
-      const customers = await Customer.find(query)
-        .select('-otpCode -otpExpires -otpAttempts')
+      const customers = await User.find(query)
+        .select('-otpCode -otpExpires -otpAttempts -password')
         .limit(limit * 1)
         .skip((page - 1) * limit)
         .sort({ createdAt: -1 });
 
-      const total = await Customer.countDocuments(query);
+      const total = await User.countDocuments(query);
 
-      // Mask mobile numbers for display
+      // Mask phone numbers for display
       const maskedCustomers = customers.map(customer => ({
         ...customer.toObject(),
-        mobile: OTPService.maskMobile(customer.mobile)
+        phoneNumber: customer.phoneNumber ? OTPService.maskMobile(customer.phoneNumber) : null
       }));
 
       res.json({

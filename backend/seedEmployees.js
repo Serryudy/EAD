@@ -1,89 +1,63 @@
 const mongoose = require('mongoose');
+const User = require('./models/User');
 require('dotenv').config();
-
-// Define User schema and model inline
-const userSchema = new mongoose.Schema({
-  employeeId: {
-    type: String,
-    unique: true,
-    sparse: true
-  },
-  name: {
-    type: String,
-    required: true
-  },
-  mobile: String,
-  password: {
-    type: String,
-    required: true
-  },
-  role: {
-    type: String,
-    enum: ['employee', 'customer'],
-    required: true
-  },
-  department: String,
-  position: String,
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  isVerified: {
-    type: Boolean,
-    default: false
-  }
-}, {
-  timestamps: true
-});
-
-const User = mongoose.model('User', userSchema);
 
 const employees = [
   {
-    employeeId: 'EMP001',
-    name: 'Alex Johnson',
-    password: 'password123',
     role: 'employee',
+    employeeId: 'EMP001',
+    password: 'password123',
+    name: 'Alex Johnson',
+    email: 'alex.johnson@vehicleservice.com',
+    phoneNumber: '0771234567',
     department: 'Service',
     position: 'Senior Technician',
     isActive: true,
     isVerified: true
   },
   {
+    role: 'employee',
     employeeId: 'EMP002',
+    password: 'password123',
     name: 'Sarah Williams',
-    password: 'password123',
-    role: 'employee',
+    email: 'sarah.williams@vehicleservice.com',
+    phoneNumber: '0772234567',
     department: 'Service',
     position: 'Technician',
     isActive: true,
     isVerified: true
   },
   {
+    role: 'employee',
     employeeId: 'EMP003',
-    name: 'Mike Chen',
     password: 'password123',
-    role: 'employee',
+    name: 'Mike Chen',
+    email: 'mike.chen@vehicleservice.com',
+    phoneNumber: '0773234567',
     department: 'Service',
     position: 'Technician',
     isActive: true,
     isVerified: true
   },
   {
-    employeeId: 'EMP004',
-    name: 'Emily Davis',
-    password: 'password123',
     role: 'employee',
+    employeeId: 'EMP004',
+    password: 'password123',
+    name: 'Emily Davis',
+    email: 'emily.davis@vehicleservice.com',
+    phoneNumber: '0774234567',
     department: 'Service',
     position: 'Junior Technician',
     isActive: true,
     isVerified: true
   },
   {
-    employeeId: 'EMP005',
-    name: 'James Martinez',
-    password: 'password123',
     role: 'employee',
+    employeeId: 'EMP005',
+    password: 'password123',
+    name: 'James Martinez',
+    email: 'james.martinez@vehicleservice.com',
+    phoneNumber: '0775234567',
     department: 'Service',
     position: 'Senior Technician',
     isActive: true,
@@ -100,7 +74,7 @@ async function seedEmployees() {
 
     // Create employees
     for (const empData of employees) {
-      const existing = await User.findOne({ employeeId: empData.employeeId });
+      const existing = await User.findOne({ employeeId: empData.employeeId, role: 'employee' });
       
       if (existing) {
         console.log(`Employee ${empData.employeeId} (${empData.name}) already exists`);
@@ -118,6 +92,8 @@ async function seedEmployees() {
     employees.forEach(emp => {
       console.log(`Employee ID: ${emp.employeeId}`);
       console.log(`Name: ${emp.name}`);
+      console.log(`Email: ${emp.email}`);
+      console.log(`Phone: ${emp.phoneNumber}`);
       console.log(`Password: ${emp.password}`);
       console.log(`Department: ${emp.department}`);
       console.log(`Position: ${emp.position}`);

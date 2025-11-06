@@ -1,5 +1,5 @@
 const JWTService = require('../services/jwtService');
-const { Employee, Customer } = require('../models/User');
+const User = require('../models/User');
 
 /**
  * Middleware to authenticate user using JWT token from HTTP-only cookie or header
@@ -29,12 +29,8 @@ const authenticateToken = async (req, res, next) => {
 
     let user = null;
 
-    // Get user from database based on role
-    if (decoded.role === 'employee') {
-      user = await Employee.findById(decoded.id);
-    } else if (decoded.role === 'customer') {
-      user = await Customer.findById(decoded.id);
-    }
+    // Get user from database
+    user = await User.findById(decoded.id);
     
     if (!user || !user.isActive) {
       return res.status(401).json({
@@ -120,6 +116,13 @@ const customerOnly = (req, res, next) => {
 };
 
 /**
+ * Middleware to allow only admins
+ */
+const adminOnly = (req, res, next) => {
+  return authorizeRoles('admin')(req, res, next);
+};
+
+/**
  * Optional authentication middleware (doesn't fail if no token)
  */
 const optionalAuth = async (req, res, next) => {
@@ -132,17 +135,15 @@ const optionalAuth = async (req, res, next) => {
       if (decoded.type === 'access') {
         let user = null;
         
-        if (decoded.role === 'employee') {
-          user = await Employee.findById(decoded.id);
-        } else if (decoded.role === 'customer') {
-          user = await Customer.findById(decoded.id);
-        }
+        user = await User.findById(decoded.id);
         
         if (user && user.isActive) {
           // Additional checks
           if (decoded.role === 'customer' && user.isVerified) {
             req.user = user;
           } else if (decoded.role === 'employee' && !user.isLocked) {
+            req.user = user;
+          } else if (decoded.role === 'admin') {
             req.user = user;
           }
         }
@@ -184,11 +185,7 @@ const validateRefreshToken = async (req, res, next) => {
     let user = null;
 
     // Get user based on role
-    if (decoded.role === 'employee') {
-      user = await Employee.findById(decoded.id);
-    } else if (decoded.role === 'customer') {
-      user = await Customer.findById(decoded.id);
-    }
+    user = await User.findById(decoded.id);
     
     if (!user || !user.isActive) {
       return res.status(401).json({
@@ -361,6 +358,7 @@ module.exports = {
   authorizeRoles,
   employeeOnly,
   customerOnly,
+  adminOnly,
   optionalAuth,
   validateRefreshToken,
   authRateLimit,
