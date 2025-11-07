@@ -259,7 +259,7 @@ export default function VehicleSelectionStep({
   }
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h3 style={{
@@ -283,9 +283,10 @@ export default function VehicleSelectionStep({
       {/* Vehicles Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-        gap: '1.5rem',
-        marginBottom: '2rem'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+        gap: '1.25rem',
+        marginBottom: '2rem',
+        width: '100%'
       }}>
         {vehicles.map((vehicle) => {
           const selected = isSelected(vehicle._id);

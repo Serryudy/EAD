@@ -280,7 +280,7 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6">
+    <div className="max-w-7xl mx-auto p-4 md:p-6">
       {/* Progress Header */}
       <div style={{
         background: '#042A5C',
