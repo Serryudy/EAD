@@ -1084,3 +1084,104 @@ exports.checkSlotAvailability = async (req, res) => {
     });
   }
 };
+
+// Get active services for customer (Service Progress Page)
+exports.getActiveServices = async (req, res) => {
+  try {
+    const customerId = req.user._id;
+    
+    console.log('📊 Fetching active services for customer:', customerId);
+    
+    // Find all appointments that are in progress or quality check
+    const activeAppointments = await Appointment.find({
+      customerId: customerId,
+      $or: [
+        { status: 'in_progress' },
+        { currentStage: { $in: ['received', 'in-progress', 'quality-check'] } }
+      ]
+    })
+    .populate('serviceIds', 'name category description estimatedDuration basePrice')
+    .populate('vehicleId', 'make model year licensePlate type')
+    .populate('assignedEmployee', 'firstName lastName email phone')
+    .sort({ startedAt: -1 }) // Most recent first
+    .lean(); // Convert to plain JavaScript objects for better performance
+    
+    console.log(`✅ Found ${activeAppointments.length} active services`);
+    
+    // Transform data to match frontend expectations
+    const transformedServices = activeAppointments.map(appointment => {
+      // Get primary service (first one) or use serviceType as fallback
+      const primaryService = appointment.serviceIds && appointment.serviceIds.length > 0
+        ? appointment.serviceIds[0]
+        : { name: appointment.serviceType, category: 'Service' };
+      
+      // Format technician info
+      const technician = appointment.assignedEmployee
+        ? {
+            _id: appointment.assignedEmployee._id,
+            firstName: appointment.assignedEmployee.firstName,
+            lastName: appointment.assignedEmployee.lastName,
+            fullName: `${appointment.assignedEmployee.firstName} ${appointment.assignedEmployee.lastName}`,
+            specialization: primaryService.category || 'General Technician'
+          }
+        : appointment.employeeName
+        ? {
+            _id: null,
+            firstName: appointment.employeeName.split(' ')[0],
+            lastName: appointment.employeeName.split(' ').slice(1).join(' '),
+            fullName: appointment.employeeName,
+            specialization: primaryService.category || 'General Technician'
+          }
+        : {
+            _id: null,
+            firstName: 'Auto',
+            lastName: 'Assigned',
+            fullName: 'Auto Assigned',
+            specialization: 'General Technician'
+          };
+      
+      return {
+        id: appointment._id,
+        service: {
+          _id: primaryService._id || null,
+          name: primaryService.name,
+          category: primaryService.category || 'Service',
+          description: primaryService.description || ''
+        },
+        vehicle: appointment.vehicleId || {
+          make: 'Unknown',
+          model: 'Vehicle',
+          year: new Date().getFullYear(),
+          licensePlate: 'N/A',
+          type: 'Car'
+        },
+        technician,
+        startedAt: appointment.startedAt || appointment.createdAt,
+        estimatedCompletion: appointment.estimatedCompletionTime || 
+          new Date(Date.now() + (appointment.duration || 120) * 60 * 1000),
+        currentStage: appointment.currentStage || 'received',
+        progress: appointment.progress || 0,
+        stages: appointment.stages || [],
+        updates: appointment.updates || [],
+        appointmentDate: appointment.appointmentDate,
+        appointmentTime: appointment.appointmentTime,
+        duration: appointment.duration,
+        status: appointment.status
+      };
+    });
+    
+    res.json({
+      success: true,
+      count: transformedServices.length,
+      data: transformedServices
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching active services:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch active services',
+      error: error.message
+    });
+  }
+};

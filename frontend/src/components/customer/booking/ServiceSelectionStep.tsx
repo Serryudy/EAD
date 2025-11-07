@@ -162,7 +162,7 @@ export default function ServiceSelectionStep({
   }
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h3 style={{
@@ -187,7 +187,7 @@ export default function ServiceSelectionStep({
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-        gap: '1.5rem',
+        gap: '1.25rem',
         marginBottom: '2rem'
       }}>
         {services.map((service) => {

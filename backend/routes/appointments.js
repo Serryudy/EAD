@@ -9,6 +9,7 @@ const { protect } = require('../middlewares/auth');
 router.get('/available-slots', protect, appointmentController.getAvailableSlots);
 router.get('/available-dates', protect, appointmentController.getAvailableDates);
 router.get('/check-slot-availability', protect, appointmentController.checkSlotAvailability);
+router.get('/active-services', protect, appointmentController.getActiveServices);
 
 // Existing routes
 router.post('/', protect, appointmentController.createAppointment);
