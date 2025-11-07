@@ -1,4 +1,6 @@
 const Notification = require('../models/Notification');
+const emailNotificationService = require('./emailNotificationService');
+const User = require('../models/User');
 
 class NotificationService {
   constructor() {
@@ -79,24 +81,93 @@ class NotificationService {
   // Send notification to specific user
   async sendToUser(userId, notificationData) {
     try {
-      // Create notification in database
-      const notification = await Notification.createNotification({
-        recipient: userId,
-        ...notificationData
-      });
+      // Get user and check preferences
+      const user = await User.findById(userId);
+      if (!user) {
+        console.warn(`User ${userId} not found`);
+        return null;
+      }
 
-      // Send via Socket.io if user is connected
-      if (this.io) {
-        this.io.to(`user_${userId}`).emit('new_notification', {
-          notification,
-          unreadCount: await Notification.getUnreadCount(userId)
+      // Check if user wants this type of notification
+      const prefs = user.notificationPreferences;
+      if (prefs && prefs.types && prefs.types[notificationData.type] === false) {
+        console.log(`User ${userId} has disabled ${notificationData.type} notifications`);
+        return null;
+      }
+
+      // Create notification in database (in-app notification)
+      let notification = null;
+      if (!prefs || prefs.push !== false) {
+        notification = await Notification.createNotification({
+          recipient: userId,
+          ...notificationData
         });
+
+        // Send via Socket.io if user is connected
+        if (this.io) {
+          this.io.to(`user_${userId}`).emit('new_notification', {
+            notification,
+            unreadCount: await Notification.getUnreadCount(userId)
+          });
+        }
+      }
+
+      // Send email notification if enabled and user has email
+      if (user.email && (!prefs || prefs.email !== false)) {
+        await this.sendEmailNotification(notificationData.type, user, notificationData);
       }
 
       return notification;
     } catch (error) {
       console.error('Send notification error:', error);
       throw error;
+    }
+  }
+
+  // Helper to send email based on notification type
+  async sendEmailNotification(type, user, data) {
+    try {
+      let emailData = null;
+
+      switch (type) {
+        case 'appointment_created':
+          if (data.appointment) {
+            emailData = emailNotificationService.getAppointmentCreatedEmail(data.appointment, user);
+          }
+          break;
+        case 'appointment_confirmed':
+          if (data.appointment) {
+            emailData = emailNotificationService.getAppointmentConfirmedEmail(data.appointment, user);
+          }
+          break;
+        case 'appointment_cancelled':
+          if (data.appointment) {
+            emailData = emailNotificationService.getAppointmentCancelledEmail(data.appointment, user);
+          }
+          break;
+        case 'appointment_reminder':
+          if (data.appointment) {
+            emailData = emailNotificationService.getAppointmentReminderEmail(data.appointment, user);
+          }
+          break;
+        case 'service_completed':
+          if (data.serviceRecord) {
+            emailData = emailNotificationService.getServiceCompletedEmail(data.serviceRecord, user);
+          }
+          break;
+        case 'vehicle_ready':
+          if (data.serviceRecord) {
+            emailData = emailNotificationService.getVehicleReadyEmail(data.serviceRecord, user);
+          }
+          break;
+      }
+
+      if (emailData) {
+        await emailNotificationService.sendEmail(emailData);
+      }
+    } catch (error) {
+      console.error('Email notification error:', error);
+      // Don't throw - email failure shouldn't break in-app notification
     }
   }
 
@@ -154,7 +225,8 @@ class NotificationService {
         entityId: appointment._id
       },
       priority: 'medium',
-      actionUrl: `/appointments/${appointment._id}`
+      actionUrl: `/appointments/${appointment._id}`,
+      appointment // Pass for email
     });
   }
 
@@ -169,7 +241,8 @@ class NotificationService {
         entityId: appointment._id
       },
       priority: 'high',
-      actionUrl: `/appointments/${appointment._id}`
+      actionUrl: `/appointments/${appointment._id}`,
+      appointment // Pass for email
     });
   }
 
@@ -184,7 +257,8 @@ class NotificationService {
         entityId: appointment._id
       },
       priority: 'high',
-      actionUrl: `/appointments/${appointment._id}`
+      actionUrl: `/appointments/${appointment._id}`,
+      appointment // Pass for email
     });
   }
 
@@ -199,7 +273,8 @@ class NotificationService {
         entityId: appointment._id
       },
       priority: 'high',
-      actionUrl: `/appointments/${appointment._id}`
+      actionUrl: `/appointments/${appointment._id}`,
+      appointment // Pass for email
     });
   }
 
@@ -215,7 +290,8 @@ class NotificationService {
         entityId: serviceRecord._id
       },
       priority: 'medium',
-      actionUrl: `/service-progress/${serviceRecord._id}`
+      actionUrl: `/service-progress/${serviceRecord._id}`,
+      serviceRecord // Pass for email
     });
   }
 
@@ -230,7 +306,8 @@ class NotificationService {
         entityId: serviceRecord._id
       },
       priority: 'high',
-      actionUrl: `/service-progress/${serviceRecord._id}`
+      actionUrl: `/service-progress/${serviceRecord._id}`,
+      serviceRecord // Pass for email
     });
   }
 
@@ -245,8 +322,96 @@ class NotificationService {
         entityId: serviceRecord._id
       },
       priority: 'urgent',
-      actionUrl: `/service-progress/${serviceRecord._id}`
+      actionUrl: `/service-progress/${serviceRecord._id}`,
+      serviceRecord // Pass for email
     });
+  }
+
+  // Admin/Employee notifications - New Appointment Created
+  async notifyAdminNewAppointment(appointment) {
+    const User = require('../models/User');
+    try {
+      // Get all admins
+      const admins = await User.find({ role: 'admin' });
+      
+      for (const admin of admins) {
+        await this.sendToUser(admin._id, {
+          recipientRole: 'admin',
+          type: 'appointment_created',
+          title: 'New Appointment Request',
+          message: `New appointment #${appointment.appointmentNumber} from ${appointment.customerName || 'Customer'}. Requires confirmation.`,
+          relatedEntity: {
+            entityType: 'Appointment',
+            entityId: appointment._id
+          },
+          priority: 'high',
+          actionUrl: `/admin/appointments/${appointment._id}`,
+          appointment
+        });
+      }
+    } catch (error) {
+      console.error('Failed to notify admins:', error);
+    }
+  }
+
+  // Notify assigned employee about new appointment
+  async notifyEmployeeAssigned(appointment, employeeId) {
+    return await this.sendToUser(employeeId, {
+      recipientRole: 'employee',
+      type: 'appointment_confirmed',
+      title: 'New Appointment Assigned',
+      message: `You've been assigned to appointment #${appointment.appointmentNumber} on ${new Date(appointment.scheduledDate).toLocaleDateString()}.`,
+      relatedEntity: {
+        entityType: 'Appointment',
+        entityId: appointment._id
+      },
+      priority: 'high',
+      actionUrl: `/employee/appointments/${appointment._id}`,
+      appointment
+    });
+  }
+
+  // Notify employee when service is ready to start
+  async notifyEmployeeServiceReady(serviceRecord, employeeId) {
+    return await this.sendToUser(employeeId, {
+      recipientRole: 'employee',
+      type: 'service_started',
+      title: 'Service Ready to Start',
+      message: `Service for vehicle ${serviceRecord.vehicleId?.vehicleNumber || 'N/A'} is ready to begin.`,
+      relatedEntity: {
+        entityType: 'ServiceRecord',
+        entityId: serviceRecord._id
+      },
+      priority: 'medium',
+      actionUrl: `/employee/service-records/${serviceRecord._id}`,
+      serviceRecord
+    });
+  }
+
+  // Notify admin when payment is completed
+  async notifyAdminPaymentReceived(appointment, amount) {
+    const User = require('../models/User');
+    try {
+      const admins = await User.find({ role: 'admin' });
+      
+      for (const admin of admins) {
+        await this.sendToUser(admin._id, {
+          recipientRole: 'admin',
+          type: 'system_notification',
+          title: 'Payment Received',
+          message: `Payment of Rs. ${amount} received for appointment #${appointment.appointmentNumber}.`,
+          relatedEntity: {
+            entityType: 'Appointment',
+            entityId: appointment._id
+          },
+          priority: 'medium',
+          actionUrl: `/admin/appointments/${appointment._id}`,
+          appointment
+        });
+      }
+    } catch (error) {
+      console.error('Failed to notify admins about payment:', error);
+    }
   }
 
   // Get online users count

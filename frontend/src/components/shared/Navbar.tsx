@@ -1,6 +1,7 @@
 import { Car, Bell, LogOut, User } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { useNotifications } from '../../contexts/NotificationContext';
 import type { User as UserType } from '../../contexts/AuthContext';
 
 interface NavbarProps {
@@ -11,6 +12,8 @@ interface NavbarProps {
 }
 
 export function Navbar({ user, onLogout, onNotificationClick, onProfileClick }: NavbarProps) {
+  const { unreadCount } = useNotifications();
+
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 z-40">
       <div className="h-full px-4 md:px-6 flex items-center justify-between">
@@ -32,9 +35,11 @@ export function Navbar({ user, onLogout, onNotificationClick, onProfileClick }: 
             className="relative h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
           >
             <Bell className="h-5 w-5 text-slate-600" />
-            <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white p-0 flex items-center justify-center">
-              3
-            </Badge>
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white p-0 flex items-center justify-center text-xs">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </Badge>
+            )}
           </button>
 
           {/* User Menu */}

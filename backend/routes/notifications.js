@@ -24,4 +24,10 @@ router.delete('/:id', notificationController.deleteNotification);
 // Delete all read notifications
 router.delete('/read/all', notificationController.deleteAllRead);
 
+// Get notification preferences
+router.get('/preferences', notificationController.getPreferences);
+
+// Update notification preferences
+router.patch('/preferences', notificationController.updatePreferences);
+
 module.exports = router;

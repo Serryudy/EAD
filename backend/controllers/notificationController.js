@@ -176,6 +176,68 @@ class NotificationController {
       });
     }
   }
+
+  // Get notification preferences
+  async getPreferences(req, res) {
+    try {
+      const User = require('../models/User');
+      const user = await User.findById(req.user._id).select('notificationPreferences');
+
+      res.json({
+        success: true,
+        data: user.notificationPreferences || {
+          email: true,
+          push: true,
+          sms: false,
+          types: {}
+        }
+      });
+    } catch (error) {
+      console.error('Get preferences error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch preferences',
+        error: error.message
+      });
+    }
+  }
+
+  // Update notification preferences
+  async updatePreferences(req, res) {
+    try {
+      const User = require('../models/User');
+      const { email, push, sms, types } = req.body;
+
+      const updateData = {};
+      if (email !== undefined) updateData['notificationPreferences.email'] = email;
+      if (push !== undefined) updateData['notificationPreferences.push'] = push;
+      if (sms !== undefined) updateData['notificationPreferences.sms'] = sms;
+      if (types) {
+        Object.keys(types).forEach(key => {
+          updateData[`notificationPreferences.types.${key}`] = types[key];
+        });
+      }
+
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: updateData },
+        { new: true, select: 'notificationPreferences' }
+      );
+
+      res.json({
+        success: true,
+        message: 'Preferences updated successfully',
+        data: user.notificationPreferences
+      });
+    } catch (error) {
+      console.error('Update preferences error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update preferences',
+        error: error.message
+      });
+    }
+  }
 }
 
 module.exports = new NotificationController();
