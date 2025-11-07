@@ -123,6 +123,11 @@ exports.createAppointment = async (req, res) => {
       vehicleId,
       serviceType,
       serviceDescription,
+      // Old required fields
+      appointmentDate,
+      appointmentTime,
+      duration,
+      // New fields
       preferredDate,
       timeWindow,
       additionalNotes,
@@ -130,6 +135,9 @@ exports.createAppointment = async (req, res) => {
       estimatedCost,
       paymentData
     } = req.body;
+
+    // serviceType can now be any service name from the Service collection
+    const mappedServiceType = serviceType; // No mapping needed anymore
 
     // Get authenticated user - NOW REQUIRED
     const user = req.user;
@@ -158,6 +166,8 @@ exports.createAppointment = async (req, res) => {
       });
     }
 
+    console.log(`📝 Creating appointment with serviceType: ${serviceType} → ${mappedServiceType}`);
+
     // Verify vehicle exists and belongs to the user
     const vehicle = await Vehicle.findById(vehicleId);
     if (!vehicle) {
@@ -178,8 +188,13 @@ exports.createAppointment = async (req, res) => {
     const appointmentData = {
       customerId: user._id,
       vehicleId: vehicle._id,
-      serviceType,
+      serviceType: mappedServiceType, // Use mapped enum value
       serviceDescription,
+      // Old required fields
+      appointmentDate: appointmentDate || preferredDate,
+      appointmentTime: appointmentTime || '09:00',
+      duration: duration || 180,
+      // New fields
       preferredDate,
       timeWindow,
       additionalNotes,
@@ -822,16 +837,26 @@ exports.getAvailableSlots = async (req, res) => {
       const services = await Service.find({ _id: { $in: serviceIdArray }, isActive: true });
       
       if (services.length > 0) {
+        console.log('🔧 Services for duration calculation:', services.map(s => ({ 
+          name: s.name, 
+          estimatedDuration: s.estimatedDuration 
+        })));
+        
         // Sum up all service durations
         const serviceDuration = services.reduce((sum, service) => {
           return sum + (service.estimatedDuration * 60); // convert hours to minutes
         }, 0);
+        
+        console.log('⏱️ Total service duration (minutes):', serviceDuration);
+        console.log('🚗 Vehicle count:', vehicleCount);
         
         // Apply vehicle count multiplier
         totalDuration = slotCalculator.calculateMultiVehicleDuration(
           serviceDuration,
           parseInt(vehicleCount)
         );
+        
+        console.log('📊 Final total duration (minutes):', totalDuration);
       }
     }
     

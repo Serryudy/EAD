@@ -80,14 +80,21 @@ export default function TimeSlotSelectionStep({
 
       const data = await response.json();
 
+      console.log('📅 Available slots FULL response:', JSON.stringify(data, null, 2));
+
       if (data.success) {
         setSlots(data.slots || []);
         setSummary(data.summary);
+        
+        if (!data.slots || data.slots.length === 0) {
+          console.warn('⚠️ No slots available. Message:', data.message);
+          setError(data.message || 'No available time slots for the selected date');
+        }
       } else {
         setError(data.message || 'Failed to load time slots');
       }
     } catch (err) {
-      console.error('Error fetching time slots:', err);
+      console.error('❌ Error fetching time slots:', err);
       const error = err as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || 'Failed to load available time slots');
     } finally {

@@ -12,8 +12,8 @@ module.exports = {
   
   // Operating hours (24-hour format)
   operatingHours: {
-    start: '09:00',
-    end: '18:00',
+    start: '08:00',
+    end: '20:00',  // Extended to 8 PM to accommodate longer services
   },
   
   // Lunch break (appointments won't be scheduled during this time)

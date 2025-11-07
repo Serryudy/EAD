@@ -120,13 +120,32 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
     try {
       setIsSubmitting(true);
 
+      // Validate all required data
+      if (!bookingData.vehicles[0]) {
+        throw new Error('Please select a vehicle');
+      }
+      if (!bookingData.services || bookingData.services.length === 0) {
+        throw new Error('Please select at least one service');
+      }
+      if (!bookingData.date) {
+        throw new Error('Please select a date');
+      }
+      if (!bookingData.timeSlot) {
+        throw new Error('Please select a time slot');
+      }
+
       // Prepare appointment data for backend
       const appointmentPayload = {
-        vehicleId: bookingData.vehicles[0]._id, // First vehicle (required by backend)
-        serviceType: bookingData.services.map(s => s.name).join(', '),
-        serviceDescription: bookingData.services.map(s => `${s.name} - ${s.description}`).join('\n'),
-        preferredDate: bookingData.date?.toISOString(),
-        timeWindow: `${bookingData.timeSlot?.displayTime} - ${bookingData.timeSlot?.displayEndTime}`,
+        vehicleId: bookingData.vehicles[0]._id,
+        // Send first service as serviceType (required enum field)
+        serviceType: bookingData.services[0].name,
+        serviceDescription: bookingData.services.map(s => `${s.name} - ${s.description || 'Professional service'}`).join('\n'),
+        // Both old and new date/time fields (model has both as required)
+        appointmentDate: bookingData.date.toISOString(),
+        appointmentTime: bookingData.timeSlot.startTime || bookingData.timeSlot.time?.split(' - ')[0] || '09:00',
+        preferredDate: bookingData.date.toISOString(),
+        timeWindow: bookingData.timeSlot.time || `${bookingData.timeSlot.displayTime || bookingData.timeSlot.startTime} - ${bookingData.timeSlot.displayEndTime || bookingData.timeSlot.endTime}`,
+        duration: bookingData.timeSlot.duration || 180,
         additionalNotes: bookingData.specialInstructions || '',
         estimatedDuration: `~${bookingData.services.reduce((sum, s) => sum + s.estimatedDuration, 0)}h`,
         estimatedCost: bookingData.services.reduce((sum, s) => sum + s.basePrice, 0) * bookingData.vehicles.length
@@ -146,6 +165,10 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
       });
 
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create appointment');
+      }
 
       if (data.success) {
         console.log('✅ Appointment created:', data.appointment);

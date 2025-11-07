@@ -22,15 +22,8 @@ const appointmentSchema = new mongoose.Schema({
   }],
   serviceType: {
     type: String,
-    required: true,
-    enum: [
-      'Oil Change',
-      'Brake Inspection & Service',
-      'Tire Rotation & Alignment',
-      'Engine Tune Up',
-      'Full Diagnostics Scan',
-      'AC Recharge & Service'
-    ]
+    required: true
+    // Removed enum restriction to allow dynamic service names from Service collection
   },
   serviceDescription: {
     type: String,
