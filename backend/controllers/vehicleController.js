@@ -19,8 +19,14 @@ exports.createVehicle = async (req, res) => {
     } = req.body;
 
     // Get owner ID from authenticated user
-    const ownerId = req.user?.id || req.body.ownerId;
-    const ownerName = req.user?.name || req.body.ownerName;
+    const ownerId = req.user?._id || req.body.ownerId;
+    const ownerName = req.user ? `${req.user.firstName} ${req.user.lastName}` : req.body.ownerName;
+
+    console.log('🚗 Creating vehicle for user:', {
+      userId: req.user?._id?.toString(),
+      userName: ownerName,
+      licensePlate: licensePlate
+    });
 
     // Check if vehicle already exists
     const existingVehicle = await Vehicle.findOne({ 
@@ -52,6 +58,12 @@ exports.createVehicle = async (req, res) => {
 
     await vehicle.save();
 
+    console.log('✅ Vehicle created successfully:', {
+      _id: vehicle._id.toString(),
+      ownerId: vehicle.ownerId.toString(),
+      licensePlate: vehicle.licensePlate
+    });
+
     res.status(201).json({
       success: true,
       message: 'Vehicle created successfully',
@@ -72,7 +84,7 @@ exports.getAllVehicles = async (req, res) => {
   try {
     const { 
       ownerId, 
-      isActive = true, 
+      isActive, 
       page = 1, 
       limit = 10,
       search 
@@ -82,13 +94,17 @@ exports.getAllVehicles = async (req, res) => {
     
     // If user is a customer, only show their vehicles
     if (req.user && req.user.role === 'customer') {
-      query.ownerId = req.user.id;
+      query.ownerId = req.user._id;
+      console.log('🔍 Customer querying vehicles for ownerId:', req.user._id.toString());
     } else if (ownerId) {
       // Employees can filter by ownerId
       query.ownerId = ownerId;
     }
     
-    if (isActive !== undefined) query.isActive = isActive === 'true';
+    // Only filter by isActive if explicitly provided
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true' || isActive === true;
+    }
     
     if (search) {
       query.$or = [
@@ -97,6 +113,8 @@ exports.getAllVehicles = async (req, res) => {
         { model: new RegExp(search, 'i') }
       ];
     }
+
+    console.log('🔍 Vehicle query:', JSON.stringify(query));
 
     const skip = (page - 1) * limit;
 
@@ -111,6 +129,15 @@ exports.getAllVehicles = async (req, res) => {
       .limit(parseInt(limit));
 
     const total = await Vehicle.countDocuments(query);
+
+    console.log('✅ Found vehicles:', total, '| Returned:', vehicles.length);
+    if (vehicles.length > 0) {
+      console.log('   First vehicle:', {
+        licensePlate: vehicles[0].licensePlate,
+        ownerId: vehicles[0].ownerId?.toString(),
+        make: vehicles[0].make
+      });
+    }
 
     res.json({
       success: true,

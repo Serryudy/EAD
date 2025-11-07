@@ -95,14 +95,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(response.message);
       }
       
-      // Store token and fetch user profile
-      if (response.data.token) {
-        sessionStorage.setItem('authToken', response.data.token);
+      // Store token (backend returns accessToken and refreshToken)
+      const token = response.data.token || response.data.accessToken;
+      if (token) {
+        sessionStorage.setItem('authToken', token);
+        console.log('✅ Token stored in sessionStorage');
+      } else {
+        console.error('⚠️ No token in response:', response.data);
       }
+      
       if (response.data.user) {
         const userData = convertUserDto(response.data.user);
         sessionStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
+        console.log('✅ User data stored:', userData);
       }
     } catch (error: any) {
       console.error('OTP verification failed:', error);
@@ -124,9 +130,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(response.message);
       }
       
-      // Store token first (before user data)
-      if (response.data.token) {
-        sessionStorage.setItem('authToken', response.data.token);
+      // Store token (backend returns accessToken and refreshToken)
+      const token = response.data.token || response.data.accessToken;
+      if (token) {
+        sessionStorage.setItem('authToken', token);
         console.log('✅ Token stored in sessionStorage');
       }
       
@@ -151,10 +158,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(response.message);
       }
       
-      // Store token and fetch user profile
-      if (response.data.token) {
-        sessionStorage.setItem('authToken', response.data.token);
+      // Store token (backend returns accessToken and refreshToken)
+      const token = response.data.token || response.data.accessToken;
+      if (token) {
+        sessionStorage.setItem('authToken', token);
       }
+      
       if (response.data.user) {
         const userData = convertUserDto(response.data.user);
         sessionStorage.setItem('user', JSON.stringify(userData));
@@ -173,10 +182,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(response.message);
       }
       
-      // Store token and fetch user profile
-      if (response.data.token) {
-        sessionStorage.setItem('authToken', response.data.token);
+      // Store token (backend returns accessToken and refreshToken)
+      const token = response.data.token || response.data.accessToken;
+      if (token) {
+        sessionStorage.setItem('authToken', token);
       }
+      
       if (response.data.user) {
         const userData = convertUserDto(response.data.user);
         sessionStorage.setItem('user', JSON.stringify(userData));

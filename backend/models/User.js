@@ -38,8 +38,7 @@ const userSchema = new mongoose.Schema({
   nic: {
     type: String,
     trim: true,
-    sparse: true,
-    unique: true
+    sparse: true
   },
   email: {
     type: String,
@@ -76,8 +75,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
     uppercase: true,
-    sparse: true,
-    unique: true
+    sparse: true
   },
   name: {
     type: String,
@@ -107,20 +105,20 @@ const userSchema = new mongoose.Schema({
   username: {
     type: String,
     trim: true,
-    sparse: true,
-    unique: true
+    sparse: true
   }
 
 }, {
   timestamps: true
 });
 
-// Indexes
+// Indexes - unique indexes defined here instead of in field definitions to avoid duplicates
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ phoneNumber: 1 }, { sparse: true });
-userSchema.index({ employeeId: 1 }, { sparse: true });
-userSchema.index({ username: 1 }, { sparse: true });
-userSchema.index({ email: 1 }, { sparse: true });
+userSchema.index({ employeeId: 1 }, { unique: true, sparse: true });
+userSchema.index({ username: 1 }, { unique: true, sparse: true });
+userSchema.index({ email: 1 }, { unique: true, sparse: true });
+userSchema.index({ nic: 1 }, { unique: true, sparse: true });
 
 // Virtual for checking if account is locked
 userSchema.virtual('isLocked').get(function() {
