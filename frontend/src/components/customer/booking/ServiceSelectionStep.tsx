@@ -5,9 +5,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Card } from '../../ui/card';
-import { Checkbox } from '../../ui/checkbox';
-import { Badge } from '../../ui/badge';
 import { 
   Clock, 
   DollarSign, 

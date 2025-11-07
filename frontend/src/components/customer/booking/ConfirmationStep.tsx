@@ -4,7 +4,6 @@
  * Displays successful booking confirmation with appointment details
  */
 
-import { Card } from '../../ui/card';
 import { CheckCircle2, Calendar, Clock, Car, Wrench, FileText, Home, CalendarPlus } from 'lucide-react';
 import { Button } from '../../ui/button';
 import type { BookingData } from './BookingWizard';

@@ -5,7 +5,6 @@
  */
 
 import { useState } from 'react';
-import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { 
   CheckSquare, 
@@ -20,14 +19,7 @@ import {
   Wind,
   Battery,
   Droplet,
-  Zap,
-  Gauge,
-  Shield,
   CircleDot,
-  Settings,
-  Fuel,
-  ThermometerSun,
-  Sparkles,
   Cog
 } from 'lucide-react';
 import { Textarea } from '../../ui/textarea';
@@ -53,47 +45,6 @@ export default function ReviewConfirmStep({
 }: ReviewConfirmStepProps) {
   const [localInstructions, setLocalInstructions] = useState(bookingData.specialInstructions);
 
-  // Helper function to get icon for service
-  const getServiceIcon = (serviceName: string) => {
-    const name = serviceName.toLowerCase();
-    
-    if (name.includes('ac') || name.includes('air conditioning') || name.includes('cooling')) {
-      return Wind;
-    }
-    if (name.includes('battery')) {
-      return Battery;
-    }
-    if (name.includes('oil') || name.includes('fluid')) {
-      return Droplet;
-    }
-    if (name.includes('electric') || name.includes('spark')) {
-      return Zap;
-    }
-    if (name.includes('brake')) {
-      return CircleDot;
-    }
-    if (name.includes('tire') || name.includes('wheel')) {
-      return Gauge;
-    }
-    if (name.includes('inspect')) {
-      return Shield;
-    }
-    if (name.includes('engine')) {
-      return Cog;
-    }
-    if (name.includes('fuel')) {
-      return Fuel;
-    }
-    if (name.includes('heat') || name.includes('temperature')) {
-      return ThermometerSun;
-    }
-    if (name.includes('wash') || name.includes('clean') || name.includes('detail')) {
-      return Sparkles;
-    }
-    // Default icon
-    return Wrench;
-  };
-
   // Calculate total cost
   const totalCost = bookingData.services.reduce((sum, service) => {
     return sum + (service.basePrice * bookingData.vehicles.length);
@@ -110,65 +61,105 @@ export default function ReviewConfirmStep({
   };
 
   return (
-    <div>
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold text-[#03045e] mb-2">
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <h3 style={{
+          fontSize: '2rem',
+          fontWeight: '700',
+          color: '#0A2C5E',
+          marginBottom: '0.5rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Review & Confirm Booking
         </h3>
-        <p className="text-slate-600">
+        <p style={{
+          color: '#64748b',
+          fontSize: '1rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Please review your appointment details before confirming
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {/* Services Summary */}
-        <Card className="p-6 shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
+        <div style={{
+          background: '#042A5C',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          border: '1px solid rgba(47, 139, 255, 0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ 
-                width: '48px', 
-                height: '48px', 
+                width: '56px', 
+                height: '56px', 
                 borderRadius: '12px', 
-                background: 'linear-gradient(to bottom right, #3b82f6, #2563eb)',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                boxShadow: '0 4px 12px rgba(47, 139, 255, 0.3)'
               }}>
-                <Wrench color="white" size={24} />
+                <Wrench color="white" size={28} />
               </div>
               <div>
-                <h4 className="font-bold text-slate-900 text-lg">Selected Services</h4>
-                <p className="text-sm text-slate-600">{bookingData.services.length} service(s) selected</p>
+                <h4 style={{
+                  fontWeight: '700',
+                  color: 'white',
+                  fontSize: '1.125rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Selected Services
+                </h4>
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#93c5fd',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  {bookingData.services.length} service(s) selected
+                </p>
               </div>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onEditStep('services')}
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-300"
+              style={{
+                color: '#2F8BFF',
+                borderColor: '#2F8BFF',
+                fontFamily: 'Poppins, sans-serif'
+              }}
             >
-              <Edit2 className="w-4 h-4 mr-1" />
+              <Edit2 style={{ width: '16px', height: '16px', marginRight: '0.25rem' }} />
               Edit
             </Button>
           </div>
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {bookingData.services.map((service) => {
               return (
               <div
                 key={service._id}
-                className="flex items-center gap-4 p-4 bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 rounded-xl border-2 border-slate-200 hover:border-blue-300 transition-colors"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  padding: '1rem',
+                  background: 'linear-gradient(135deg, rgba(10, 44, 94, 0.5) 0%, rgba(27, 76, 140, 0.5) 100%)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(47, 139, 255, 0.3)'
+                }}
               >
                 {/* Service Icon */}
                 <div style={{ 
                   width: '56px', 
                   height: '56px', 
                   borderRadius: '12px', 
-                  background: 'linear-gradient(to bottom right, #3b82f6, #2563eb)',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
                   flexShrink: 0
                 }}>
                   {service.name.toLowerCase().includes('ac') && <Wind color="white" size={28} />}
@@ -187,17 +178,39 @@ export default function ReviewConfirmStep({
                 </div>
                 
                 {/* Service Details */}
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-900 text-base">{service.name}</p>
-                  <p className="text-sm text-slate-600">{service.category}</p>
+                <div style={{ flex: 1 }}>
+                  <p style={{
+                    fontWeight: '600',
+                    color: 'white',
+                    fontSize: '1rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {service.name}
+                  </p>
+                  <p style={{
+                    fontSize: '0.875rem',
+                    color: '#93c5fd',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {service.category}
+                  </p>
                 </div>
                 
                 {/* Price & Duration */}
-                <div className="text-right">
-                  <p className="font-bold text-lg text-blue-900">
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{
+                    fontWeight: '700',
+                    fontSize: '1.125rem',
+                    color: '#10b981',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
                     ${service.basePrice.toFixed(2)}
                   </p>
-                  <p className="text-xs text-slate-600">
+                  <p style={{
+                    fontSize: '0.75rem',
+                    color: '#93c5fd',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
                     ~{service.estimatedDuration}h
                   </p>
                 </div>
@@ -205,97 +218,187 @@ export default function ReviewConfirmStep({
               );
             })}
           </div>
-        </Card>
+        </div>
 
         {/* Vehicles Summary */}
-        <Card className="p-6 shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
+        <div style={{
+          background: '#042A5C',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          border: '1px solid rgba(47, 139, 255, 0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ 
-                width: '48px', 
-                height: '48px', 
+                width: '56px', 
+                height: '56px', 
                 borderRadius: '12px', 
-                background: 'linear-gradient(to bottom right, #10b981, #059669)',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
               }}>
-                <Car color="white" size={24} />
+                <Car color="white" size={28} />
               </div>
               <div>
-                <h4 className="font-bold text-slate-900 text-lg">Selected Vehicles</h4>
-                <p className="text-sm text-slate-600">{bookingData.vehicles.length} vehicle(s) selected</p>
+                <h4 style={{
+                  fontWeight: '700',
+                  color: 'white',
+                  fontSize: '1.125rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Selected Vehicles
+                </h4>
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#93c5fd',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  {bookingData.vehicles.length} vehicle(s) selected
+                </p>
               </div>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onEditStep('vehicles')}
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-300"
+              style={{
+                color: '#10b981',
+                borderColor: '#10b981',
+                fontFamily: 'Poppins, sans-serif'
+              }}
             >
-              <Edit2 className="w-4 h-4 mr-1" />
+              <Edit2 style={{ width: '16px', height: '16px', marginRight: '0.25rem' }} />
               Edit
             </Button>
           </div>
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {bookingData.vehicles.map((vehicle) => (
               <div
                 key={vehicle._id}
-                className="flex items-center justify-between p-4 bg-gradient-to-br from-slate-50 via-green-50 to-slate-100 rounded-xl border-2 border-slate-200 hover:border-green-300 transition-colors"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  padding: '1rem',
+                  background: 'linear-gradient(135deg, rgba(10, 44, 94, 0.5) 0%, rgba(27, 76, 140, 0.5) 100%)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(47, 139, 255, 0.3)'
+                }}
               >
-                <div>
-                  <p className="font-semibold text-slate-900">
+                <Car color="#10b981" size={24} />
+                <div style={{ flex: 1 }}>
+                  <p style={{
+                    fontWeight: '600',
+                    color: 'white',
+                    fontSize: '1rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
                     {vehicle.year} {vehicle.make} {vehicle.model}
                   </p>
-                  <p className="text-sm text-slate-600">{vehicle.licensePlate}</p>
+                  <p style={{
+                    fontSize: '0.875rem',
+                    color: '#93c5fd',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {vehicle.licensePlate}
+                  </p>
                 </div>
-                <div className="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full border border-green-300">
-                  {vehicle.type}
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{
+                    padding: '0.375rem 0.875rem',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    color: '#10b981',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    border: '1px solid #10b981',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {vehicle.type}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
-        </Card>
+        </div>
 
         {/* Date & Time Summary */}
-        <Card className="p-6 shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
+        <div style={{
+          background: '#042A5C',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          border: '1px solid rgba(47, 139, 255, 0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div style={{ 
-                width: '48px', 
-                height: '48px', 
+                width: '56px', 
+                height: '56px', 
                 borderRadius: '12px', 
-                background: 'linear-gradient(to bottom right, #a855f7, #9333ea)',
+                background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)'
               }}>
-                <Calendar color="white" size={24} />
+                <Calendar color="white" size={28} />
               </div>
               <div>
-                <h4 className="font-bold text-slate-900 text-lg">Date & Time</h4>
-                <p className="text-sm text-slate-600">Appointment schedule</p>
+                <h4 style={{
+                  fontWeight: '700',
+                  color: 'white',
+                  fontSize: '1.125rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Date & Time
+                </h4>
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#93c5fd',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Appointment schedule
+                </p>
               </div>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onEditStep('time')}
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-300"
+              style={{
+                color: '#a855f7',
+                borderColor: '#a855f7',
+                fontFamily: 'Poppins, sans-serif'
+              }}
             >
-              <Edit2 className="w-4 h-4 mr-1" />
+              <Edit2 style={{ width: '16px', height: '16px', marginRight: '0.25rem' }} />
               Edit
             </Button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-gradient-to-br from-purple-50 via-purple-100 to-purple-50 rounded-xl border-2 border-purple-200 shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-5 h-5 text-purple-600" />
-                <span className="text-sm font-semibold text-purple-900">Date</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+            <div style={{
+              padding: '1rem',
+              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%)',
+              borderRadius: '12px',
+              border: '1px solid rgba(168, 85, 247, 0.3)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Calendar color="#a855f7" size={20} />
+                <span style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  color: '#e0e7ff',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>Date</span>
               </div>
-              <p className="font-bold text-purple-900">
+              <p style={{
+                fontWeight: '700',
+                color: 'white',
+                fontSize: '1rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
                 {bookingData.date?.toLocaleDateString('en-US', {
                   weekday: 'long',
                   month: 'long',
@@ -304,149 +407,298 @@ export default function ReviewConfirmStep({
                 })}
               </p>
             </div>
-            <div className="p-4 bg-gradient-to-br from-blue-50 via-sky-100 to-blue-50 rounded-xl border-2 border-blue-200 shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-semibold text-blue-900">Time Slot</span>
+            <div style={{
+              padding: '1rem',
+              background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(29, 78, 216, 0.1) 100%)',
+              borderRadius: '12px',
+              border: '1px solid rgba(37, 99, 235, 0.3)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Clock color="#2563eb" size={20} />
+                <span style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  color: '#e0e7ff',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>Time Slot</span>
               </div>
-              <p className="font-bold text-blue-900">
+              <p style={{
+                fontWeight: '700',
+                color: 'white',
+                fontSize: '1rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
                 {bookingData.timeSlot?.displayTime} - {bookingData.timeSlot?.displayEndTime}
               </p>
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Cost Summary */}
-        <Card className="p-6 bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100 border-blue-300 shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
+        <div style={{
+          background: '#042A5C',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          border: '1px solid rgba(37, 99, 235, 0.5)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
             <div style={{ 
-              width: '48px', 
-              height: '48px', 
+              width: '56px', 
+              height: '56px', 
               borderRadius: '12px', 
-              background: 'linear-gradient(to bottom right, #2563eb, #1d4ed8)',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
             }}>
-              <DollarSign color="white" size={24} />
+              <DollarSign color="white" size={28} />
             </div>
             <div>
-              <h4 className="font-bold text-blue-900 text-lg">Cost Summary</h4>
-              <p className="text-sm text-blue-700">Estimated total cost</p>
+              <h4 style={{
+                fontWeight: '700',
+                color: 'white',
+                fontSize: '1.125rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
+                Cost Summary
+              </h4>
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#93c5fd',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
+                Estimated total cost
+              </p>
             </div>
           </div>
-          <div className="space-y-3">
-            <div className="flex justify-between text-base text-blue-900 p-2 bg-white/50 rounded-lg">
-              <span className="font-medium">Services ({bookingData.services.length})</span>
-              <span className="font-semibold">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '0.75rem',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px'
+            }}>
+              <span style={{
+                fontWeight: '500',
+                color: '#e0e7ff',
+                fontSize: '1rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>Services ({bookingData.services.length})</span>
+              <span style={{
+                fontWeight: '600',
+                color: 'white',
+                fontSize: '1rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
                 ${bookingData.services.reduce((sum, s) => sum + s.basePrice, 0).toFixed(2)}
               </span>
             </div>
-            <div className="flex justify-between text-base text-blue-900 p-2 bg-white/50 rounded-lg">
-              <span className="font-medium">Vehicles ({bookingData.vehicles.length})</span>
-              <span className="font-semibold">× {bookingData.vehicles.length}</span>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '0.75rem',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px'
+            }}>
+              <span style={{
+                fontWeight: '500',
+                color: '#e0e7ff',
+                fontSize: '1rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>Vehicles ({bookingData.vehicles.length})</span>
+              <span style={{
+                fontWeight: '600',
+                color: 'white',
+                fontSize: '1rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>× {bookingData.vehicles.length}</span>
             </div>
-            <div className="flex justify-between text-base text-blue-900 p-2 bg-white/50 rounded-lg">
-              <span className="font-medium">Estimated Duration</span>
-              <span className="font-semibold">~{totalDuration}h</span>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '0.75rem',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px'
+            }}>
+              <span style={{
+                fontWeight: '500',
+                color: '#e0e7ff',
+                fontSize: '1rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>Estimated Duration</span>
+              <span style={{
+                fontWeight: '600',
+                color: 'white',
+                fontSize: '1rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>~{totalDuration}h</span>
             </div>
-            <div className="pt-3 border-t-2 border-blue-400">
+            <div style={{ paddingTop: '0.75rem', borderTop: '2px solid rgba(37, 99, 235, 0.5)' }}>
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '12px',
-                background: 'linear-gradient(to right, #2563eb, #1d4ed8)',
+                padding: '0.75rem',
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                 borderRadius: '12px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)'
               }}>
-                <span style={{ fontWeight: 'bold', color: 'white', fontSize: '18px' }}>Total Estimate</span>
-                <span style={{ fontWeight: 'bold', color: 'white', fontSize: '24px' }}>
+                <span style={{
+                  fontWeight: '700',
+                  color: 'white',
+                  fontSize: '1.125rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>Total Estimate</span>
+                <span style={{
+                  fontWeight: '700',
+                  color: 'white',
+                  fontSize: '1.5rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
                   ${totalCost.toFixed(2)}
                 </span>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Special Instructions */}
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-4">
+        <div style={{
+          background: '#042A5C',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          border: '1px solid rgba(47, 139, 255, 0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
             <div style={{ 
-              width: '40px', 
-              height: '40px', 
-              borderRadius: '8px', 
-              background: 'linear-gradient(to bottom right, #f59e0b, #d97706)',
+              width: '48px', 
+              height: '48px', 
+              borderRadius: '12px', 
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)'
             }}>
-              <FileText color="white" size={20} />
+              <FileText color="white" size={24} />
             </div>
             <div>
-              <h4 className="font-semibold text-slate-900">Special Instructions</h4>
-              <p className="text-sm text-slate-600">Optional notes for the service team</p>
+              <h4 style={{
+                fontWeight: '600',
+                color: 'white',
+                fontSize: '1rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>Special Instructions</h4>
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#93c5fd',
+                fontFamily: 'Poppins, sans-serif'
+              }}>Optional notes for the service team</p>
             </div>
           </div>
           <Textarea
             placeholder="Any specific concerns or requests? (optional)"
             value={localInstructions}
             onChange={(e) => handleInstructionsChange(e.target.value)}
-            className="min-h-[100px]"
+            style={{
+              minHeight: '100px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(47, 139, 255, 0.3)',
+              borderRadius: '8px',
+              color: 'white',
+              padding: '0.75rem',
+              fontFamily: 'Poppins, sans-serif',
+              resize: 'vertical'
+            }}
             maxLength={500}
           />
-          <p className="text-xs text-slate-500 mt-2">
+          <p style={{
+            fontSize: '0.75rem',
+            color: '#93c5fd',
+            marginTop: '0.5rem',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
             {localInstructions.length}/500 characters
           </p>
-        </Card>
+        </div>
 
         {/* Customer Info */}
-        <Card className="p-6 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
-          <h4 className="font-semibold text-slate-900 mb-3">Customer Information</h4>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+        <div style={{
+          background: '#042A5C',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          border: '1px solid rgba(47, 139, 255, 0.3)'
+        }}>
+          <h4 style={{
+            fontWeight: '600',
+            color: 'white',
+            fontSize: '1rem',
+            marginBottom: '1rem',
+            fontFamily: 'Poppins, sans-serif'
+          }}>Customer Information</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', fontSize: '0.875rem' }}>
             <div>
-              <span className="text-slate-600">Name:</span>
-              <p className="font-medium text-slate-900">
+              <span style={{
+                color: '#93c5fd',
+                fontFamily: 'Poppins, sans-serif'
+              }}>Name:</span>
+              <p style={{
+                fontWeight: '500',
+                color: 'white',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
                 {user.firstName} {user.lastName}
               </p>
             </div>
             <div>
-              <span className="text-slate-600">Phone:</span>
-              <p className="font-medium text-slate-900">
+              <span style={{
+                color: '#93c5fd',
+                fontFamily: 'Poppins, sans-serif'
+              }}>Phone:</span>
+              <p style={{
+                fontWeight: '500',
+                color: 'white',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
                 {user.phone || 'Not provided'}
               </p>
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Confirm Button */}
-        <div className="flex gap-3 pt-4">
+        <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '1rem' }}>
           <Button
             onClick={onConfirm}
             disabled={isSubmitting}
             style={{
               flex: 1,
-              background: 'linear-gradient(to right, #2563eb, #1d4ed8, #1e40af)',
+              background: isSubmitting 
+                ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)' 
+                : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%)',
               color: 'white',
-              padding: '28px 24px',
-              fontSize: '20px',
-              fontWeight: 'bold',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-              borderRadius: '8px',
+              padding: '1.75rem 1.5rem',
+              fontSize: '1.25rem',
+              fontWeight: '700',
+              boxShadow: isSubmitting ? 'none' : '0 8px 16px rgba(37, 99, 235, 0.4)',
+              borderRadius: '12px',
               border: 'none',
               cursor: isSubmitting ? 'not-allowed' : 'pointer',
-              opacity: isSubmitting ? 0.7 : 1
+              opacity: isSubmitting ? 0.7 : 1,
+              fontFamily: 'Poppins, sans-serif',
+              transition: 'all 0.3s ease'
             }}
           >
             {isSubmitting ? (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Loader2 color="white" size={24} style={{ marginRight: '12px', animation: 'spin 1s linear infinite' }} />
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                <Loader2 color="white" size={24} style={{ animation: 'spin 1s linear infinite' }} />
                 Creating Your Appointment...
               </span>
             ) : (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CheckSquare color="white" size={24} style={{ marginRight: '12px' }} />
+              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                <CheckSquare color="white" size={24} />
                 Confirm & Book Appointment
               </span>
             )}
