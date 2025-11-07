@@ -743,3 +743,319 @@ exports.checkEmployeeAvailability = async (req, res) => {
     });
   }
 };
+
+// ==========================================
+// NEW TIME SLOT BOOKING SYSTEM
+// ==========================================
+
+const slotCalculator = require('../utils/slotCalculator');
+const appointmentValidator = require('../utils/appointmentValidator');
+const Service = require('../models/Service');
+
+/**
+ * Get available time slots for a specific date
+ * GET /api/appointments/available-slots
+ */
+exports.getAvailableSlots = async (req, res) => {
+  try {
+    const { date, serviceIds, vehicleCount = 1 } = req.query;
+    
+    // Validate required parameters
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date is required'
+      });
+    }
+    
+    const requestedDate = new Date(date);
+    
+    // Validate date is valid
+    if (isNaN(requestedDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date format'
+      });
+    }
+    
+    // Check if date is in the past
+    if (slotCalculator.isPastDateTime(requestedDate, '00:00')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot book appointments in the past'
+      });
+    }
+    
+    // Check if date is too far in future
+    if (slotCalculator.isBeyondBookingWindow(requestedDate)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot book more than ${require('../config/businessHours').advanceBookingDays} days in advance`
+      });
+    }
+    
+    // Check if it's a working day
+    if (!slotCalculator.isWorkingDay(requestedDate)) {
+      return res.status(200).json({
+        success: true,
+        date: date,
+        message: 'Selected date is not a working day',
+        slots: []
+      });
+    }
+    
+    // Check if date is blocked
+    if (slotCalculator.isBlockedDate(requestedDate)) {
+      return res.status(200).json({
+        success: true,
+        date: date,
+        message: 'Selected date is not available (holiday/closure)',
+        slots: []
+      });
+    }
+    
+    // Calculate service duration
+    let totalDuration = 60; // default 1 hour
+    
+    if (serviceIds) {
+      const serviceIdArray = Array.isArray(serviceIds) ? serviceIds : [serviceIds];
+      const services = await Service.find({ _id: { $in: serviceIdArray }, isActive: true });
+      
+      if (services.length > 0) {
+        // Sum up all service durations
+        const serviceDuration = services.reduce((sum, service) => {
+          return sum + (service.estimatedDuration * 60); // convert hours to minutes
+        }, 0);
+        
+        // Apply vehicle count multiplier
+        totalDuration = slotCalculator.calculateMultiVehicleDuration(
+          serviceDuration,
+          parseInt(vehicleCount)
+        );
+      }
+    }
+    
+    // Generate all possible slots
+    const allSlots = slotCalculator.generateTimeSlots(requestedDate, totalDuration);
+    
+    // Check availability for each slot
+    const slotsWithAvailability = await Promise.all(
+      allSlots.map(async (slot) => {
+        const capacityCheck = await appointmentValidator.checkSlotCapacity(
+          requestedDate,
+          slot.startTime,
+          totalDuration
+        );
+        
+        return {
+          ...slot,
+          ...capacityCheck,
+          displayTime: slotCalculator.formatTimeDisplay(slot.startTime),
+          displayEndTime: slotCalculator.formatTimeDisplay(slot.endTime)
+        };
+      })
+    );
+    
+    // Filter out past slots if date is today
+    const now = new Date();
+    const isToday = requestedDate.toDateString() === now.toDateString();
+    
+    let availableSlots = slotsWithAvailability;
+    
+    if (isToday) {
+      availableSlots = slotsWithAvailability.filter(slot => {
+        return slotCalculator.meetsMinimumNotice(requestedDate, slot.startTime);
+      });
+    }
+    
+    // Categorize slots
+    const fullyAvailable = availableSlots.filter(s => s.isAvailable && s.capacityRemaining > 1);
+    const limitedAvailable = availableSlots.filter(s => s.isAvailable && s.capacityRemaining === 1);
+    const fullyBooked = availableSlots.filter(s => !s.isAvailable);
+    
+    res.json({
+      success: true,
+      date: date,
+      totalSlots: availableSlots.length,
+      availableCount: fullyAvailable.length + limitedAvailable.length,
+      fullyBookedCount: fullyBooked.length,
+      slots: availableSlots,
+      summary: {
+        fullyAvailable: fullyAvailable.length,
+        limitedAvailable: limitedAvailable.length,
+        fullyBooked: fullyBooked.length
+      },
+      serviceDuration: totalDuration,
+      vehicleCount: parseInt(vehicleCount)
+    });
+    
+  } catch (error) {
+    console.error('Error fetching available slots:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch available slots',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get available dates for the next N days
+ * GET /api/appointments/available-dates
+ */
+exports.getAvailableDates = async (req, res) => {
+  try {
+    const { days = 14, serviceIds, vehicleCount = 1 } = req.query;
+    const businessHours = require('../config/businessHours');
+    const maxDays = Math.min(parseInt(days), businessHours.advanceBookingDays);
+    
+    const availableDates = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Calculate service duration
+    let totalDuration = 60;
+    if (serviceIds) {
+      const serviceIdArray = Array.isArray(serviceIds) ? serviceIds : [serviceIds];
+      const services = await Service.find({ _id: { $in: serviceIdArray }, isActive: true });
+      
+      if (services.length > 0) {
+        const serviceDuration = services.reduce((sum, service) => {
+          return sum + (service.estimatedDuration * 60);
+        }, 0);
+        totalDuration = slotCalculator.calculateMultiVehicleDuration(
+          serviceDuration,
+          parseInt(vehicleCount)
+        );
+      }
+    }
+    
+    // Check each date
+    for (let i = 0; i < maxDays; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() + i);
+      
+      // Skip non-working days
+      if (!slotCalculator.isWorkingDay(checkDate)) {
+        continue;
+      }
+      
+      // Skip blocked dates
+      if (slotCalculator.isBlockedDate(checkDate)) {
+        continue;
+      }
+      
+      // Generate slots for this date
+      const slots = slotCalculator.generateTimeSlots(checkDate, totalDuration);
+      
+      if (slots.length === 0) {
+        continue;
+      }
+      
+      // Check availability for slots
+      let availableSlotCount = 0;
+      for (const slot of slots) {
+        // Skip past slots if checking today
+        const isToday = checkDate.toDateString() === new Date().toDateString();
+        if (isToday && !slotCalculator.meetsMinimumNotice(checkDate, slot.startTime)) {
+          continue;
+        }
+        
+        const capacityCheck = await appointmentValidator.checkSlotCapacity(
+          checkDate,
+          slot.startTime,
+          totalDuration
+        );
+        
+        if (capacityCheck.isAvailable) {
+          availableSlotCount++;
+        }
+      }
+      
+      if (availableSlotCount > 0) {
+        availableDates.push({
+          date: checkDate.toISOString().split('T')[0],
+          dayOfWeek: checkDate.toLocaleDateString('en-US', { weekday: 'long' }),
+          availableSlots: availableSlotCount,
+          totalSlots: slots.length,
+          availabilityPercentage: Math.round((availableSlotCount / slots.length) * 100)
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      count: availableDates.length,
+      dates: availableDates,
+      serviceDuration: totalDuration,
+      vehicleCount: parseInt(vehicleCount)
+    });
+    
+  } catch (error) {
+    console.error('Error fetching available dates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch available dates',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Check if a specific time slot is available
+ * GET /api/appointments/check-availability
+ */
+exports.checkSlotAvailability = async (req, res) => {
+  try {
+    const { date, time, duration = 60 } = req.query;
+    
+    if (!date || !time) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date and time are required'
+      });
+    }
+    
+    const requestedDate = new Date(date);
+    const requestedDuration = parseInt(duration);
+    
+    // Validate date and time
+    const timeValidation = await appointmentValidator.validateAppointmentTime({
+      appointmentDate: requestedDate,
+      appointmentTime: time,
+      duration: requestedDuration
+    });
+    
+    if (!timeValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date/time',
+        errors: timeValidation.errors
+      });
+    }
+    
+    // Check capacity
+    const capacityCheck = await appointmentValidator.checkSlotCapacity(
+      requestedDate,
+      time,
+      requestedDuration
+    );
+    
+    res.json({
+      success: true,
+      date,
+      time,
+      duration: requestedDuration,
+      ...capacityCheck,
+      displayTime: slotCalculator.formatTimeDisplay(time)
+    });
+    
+  } catch (error) {
+    console.error('Error checking slot availability:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check availability',
+      error: error.message
+    });
+  }
+};

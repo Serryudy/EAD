@@ -60,9 +60,15 @@ export function LoginPage() {
     try {
       await login(phone, otp);
       
-      // Navigate based on user role (will be set by the login function)
-      // For now, navigate to customer dashboard by default
-      navigate('/customer/dashboard');
+      // Check if there's a redirect URL stored
+      const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectUrl) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(redirectUrl);
+      } else {
+        // Navigate based on user role (default to customer dashboard)
+        navigate('/customer/dashboard');
+      }
     } catch (error: any) {
       setError(error.message || 'Invalid OTP. Please try again.');
     } finally {

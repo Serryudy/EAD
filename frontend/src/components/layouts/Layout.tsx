@@ -51,7 +51,7 @@ export const Layout = () => {
   const getCurrentPage = () => {
     const path = location.pathname;
     if (path === '/dashboard') return 'customer-dashboard';
-    if (path === '/appointments/book') return 'appointment-booking';
+    if (path === '/booking' || path === '/appointments/book') return 'appointment-booking';
     if (path === '/service/progress') return 'service-progress';
     if (path === '/employee/dashboard') return 'employee-dashboard';
     if (path === '/admin/panel') return 'admin-panel';

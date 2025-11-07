@@ -45,8 +45,10 @@ export interface ApiResponse<T> {
 }
 
 export interface AuthResponseDto {
-  token: string;
-  tokenType: string;
+  token?: string;  // For backward compatibility
+  accessToken?: string;  // JWT access token
+  refreshToken?: string;  // JWT refresh token
+  tokenType?: string;
   user: UserDto;
 }
 
