@@ -6,9 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
-import { Checkbox } from '../../ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../ui/dialog';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -173,8 +171,28 @@ export default function VehicleSelectionStep({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-[#0077b6]" />
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '5rem 0',
+        textAlign: 'center'
+      }}>
+        <div>
+          <Loader2 style={{
+            width: '48px',
+            height: '48px',
+            color: '#2F8BFF',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1rem'
+          }} />
+          <p style={{
+            color: '#64748b',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            Loading vehicles...
+          </p>
+        </div>
       </div>
     );
   }
@@ -182,19 +200,48 @@ export default function VehicleSelectionStep({
   // Empty state - no vehicles
   if (vehicles.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Car className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-slate-900 mb-2">
+      <div style={{
+        textAlign: 'center',
+        padding: '3rem 1.5rem',
+        background: '#042A5C',
+        borderRadius: '12px',
+        border: '1px solid #2F8BFF'
+      }}>
+        <Car style={{
+          width: '64px',
+          height: '64px',
+          color: '#2F8BFF',
+          margin: '0 auto 1rem'
+        }} />
+        <h3 style={{
+          fontSize: '1.25rem',
+          fontWeight: '600',
+          color: 'white',
+          marginBottom: '0.5rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           No Vehicles Found
         </h3>
-        <p className="text-slate-600 mb-6">
+        <p style={{
+          color: '#93c5fd',
+          marginBottom: '1.5rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           You haven't added any vehicles yet. Add your first vehicle to continue booking.
         </p>
         <Button
           onClick={() => setShowAddDialog(true)}
-          className="bg-[#0077b6] hover:bg-[#03045e]"
+          style={{
+            background: 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)',
+            color: 'white',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '8px',
+            fontWeight: '600',
+            fontFamily: 'Poppins, sans-serif',
+            border: 'none'
+          }}
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus style={{ width: '16px', height: '16px', marginRight: '0.5rem' }} />
           Add Vehicle Now
         </Button>
 
@@ -212,92 +259,277 @@ export default function VehicleSelectionStep({
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold text-[#03045e] mb-2">
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <h3 style={{
+          fontSize: '2rem',
+          fontWeight: '700',
+          color: '#0A2C5E',
+          marginBottom: '0.5rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Select Vehicle(s)
         </h3>
-        <p className="text-slate-600">
+        <p style={{
+          color: '#64748b',
+          fontSize: '1rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Choose one or more vehicles for this appointment
         </p>
       </div>
 
       {/* Vehicles Grid */}
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
-        {vehicles.map((vehicle) => (
-          <Card
-            key={vehicle._id}
-            className={`p-4 cursor-pointer transition-all hover:shadow-md ${
-              isSelected(vehicle._id)
-                ? 'border-2 border-[#0077b6] bg-blue-50'
-                : 'border-slate-200'
-            }`}
-            onClick={() => handleToggleVehicle(vehicle)}
-          >
-            <div className="flex items-start gap-3">
-              <Checkbox
-                checked={isSelected(vehicle._id)}
-                onCheckedChange={() => handleToggleVehicle(vehicle)}
-                className="mt-1"
-              />
-              
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <Car className="w-5 h-5 text-[#0077b6]" />
-                  <h4 className="font-semibold text-slate-900">
-                    {vehicle.year} {vehicle.make} {vehicle.model}
-                  </h4>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+        gap: '1.5rem',
+        marginBottom: '2rem'
+      }}>
+        {vehicles.map((vehicle) => {
+          const selected = isSelected(vehicle._id);
+          
+          return (
+            <div
+              key={vehicle._id}
+              onClick={() => handleToggleVehicle(vehicle)}
+              style={{
+                background: selected ? 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)' : '#042A5C',
+                border: selected ? '2px solid #2F8BFF' : '1px solid rgba(47, 139, 255, 0.3)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                position: 'relative'
+              }}
+              onMouseEnter={(e) => {
+                if (!selected) {
+                  e.currentTarget.style.border = '1px solid #2F8BFF';
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(47, 139, 255, 0.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!selected) {
+                  e.currentTarget.style.border = '1px solid rgba(47, 139, 255, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }
+              }}
+            >
+              {/* Selection Check */}
+              {selected && (
+                <div style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                {/* Icon */}
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '12px',
+                  background: selected 
+                    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                }}>
+                  <Car color="white" size={28} />
                 </div>
 
-                <div className="space-y-1 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600">License Plate:</span>
-                    <span className="font-mono font-semibold text-slate-900">
-                      {vehicle.licensePlate}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-600">Type:</span>
-                    <span className="text-slate-900">{vehicle.type}</span>
-                  </div>
-                  {vehicle.mileage && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-600">Mileage:</span>
-                      <span className="text-slate-900">{vehicle.mileage.toLocaleString()} mi</span>
+                <div style={{ flex: 1 }}>
+                  {/* Vehicle Name */}
+                  <h4 style={{
+                    fontSize: '1.125rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    marginBottom: '0.75rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {vehicle.year} {vehicle.make} {vehicle.model}
+                  </h4>
+
+                  {/* Details */}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span style={{
+                        fontSize: '0.875rem',
+                        color: '#93c5fd',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}>
+                        License Plate:
+                      </span>
+                      <span style={{
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: 'white',
+                        fontFamily: 'monospace',
+                        letterSpacing: '0.05em'
+                      }}>
+                        {vehicle.licensePlate}
+                      </span>
                     </div>
-                  )}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <span style={{
+                        fontSize: '0.875rem',
+                        color: '#93c5fd',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}>
+                        Type:
+                      </span>
+                      <span style={{
+                        fontSize: '0.875rem',
+                        color: '#e0e7ff',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}>
+                        {vehicle.type}
+                      </span>
+                    </div>
+                    {vehicle.mileage && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <span style={{
+                          fontSize: '0.875rem',
+                          color: '#93c5fd',
+                          fontFamily: 'Poppins, sans-serif'
+                        }}>
+                          Mileage:
+                        </span>
+                        <span style={{
+                          fontSize: '0.875rem',
+                          color: '#e0e7ff',
+                          fontFamily: 'Poppins, sans-serif'
+                        }}>
+                          {vehicle.mileage.toLocaleString()} mi
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </Card>
-        ))}
+          );
+        })}
 
         {/* Add New Vehicle Card */}
-        <Card
-          className="p-4 cursor-pointer border-2 border-dashed border-slate-300 hover:border-[#0077b6] transition-colors flex items-center justify-center min-h-[140px]"
+        <div
           onClick={() => setShowAddDialog(true)}
+          style={{
+            background: '#042A5C',
+            border: '2px dashed rgba(47, 139, 255, 0.5)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '180px'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.border = '2px dashed #2F8BFF';
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = '0 8px 16px rgba(47, 139, 255, 0.2)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.border = '2px dashed rgba(47, 139, 255, 0.5)';
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
         >
-          <div className="text-center">
-            <Plus className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-slate-600">Add New Vehicle</p>
+          <div style={{ textAlign: 'center' }}>
+            <Plus style={{
+              width: '32px',
+              height: '32px',
+              color: '#2F8BFF',
+              margin: '0 auto 0.5rem'
+            }} />
+            <p style={{
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: '#93c5fd',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
+              Add New Vehicle
+            </p>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Multi-vehicle warning */}
       {selectedVehicles.length > 1 && (
-        <Card className="p-4 bg-blue-50 border-blue-200 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div style={{
+          padding: '1rem',
+          background: 'rgba(251, 191, 36, 0.1)',
+          border: '1px solid rgba(251, 191, 36, 0.3)',
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '0.75rem',
+          marginBottom: '1.5rem'
+        }}>
+          <AlertCircle style={{
+            width: '20px',
+            height: '20px',
+            color: '#fbbf24',
+            flexShrink: 0,
+            marginTop: '0.125rem'
+          }} />
           <div>
-            <p className="text-sm font-semibold text-blue-900 mb-1">
+            <p style={{
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: '#fbbf24',
+              marginBottom: '0.25rem',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
               Multiple Vehicles Selected
             </p>
-            <p className="text-sm text-blue-700">
+            <p style={{
+              fontSize: '0.875rem',
+              color: '#fde68a',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
               Appointments will be scheduled sequentially for {selectedVehicles.length} vehicles.
               Total duration will be approximately {selectedVehicles.length}x longer.
             </p>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Add Vehicle Dialog */}

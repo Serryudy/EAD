@@ -7,7 +7,6 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar } from '../../ui/calendar';
-import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Loader2, Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -80,7 +79,8 @@ export default function DateSelectionStep({
         }
       } catch (error) {
         clearTimeout(timeoutId);
-        if (error.name === 'AbortError') {
+        const err = error as Error;
+        if (err.name === 'AbortError') {
           console.warn('API request timeout, using default dates');
         } else {
           console.warn('Failed to fetch available dates from API:', error);
@@ -179,26 +179,64 @@ export default function DateSelectionStep({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-[#0077b6]" />
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '3rem 0',
+        textAlign: 'center'
+      }}>
+        <Loader2 style={{
+          width: '48px',
+          height: '48px',
+          color: '#2F8BFF',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1rem'
+        }} />
+        <p style={{
+          color: '#64748b',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
+          Loading available dates...
+        </p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold text-[#03045e] mb-2">
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <h3 style={{
+          fontSize: '2rem',
+          fontWeight: '700',
+          color: '#0A2C5E',
+          marginBottom: '0.5rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Select Appointment Date
         </h3>
-        <p className="text-slate-600">
+        <p style={{
+          color: '#64748b',
+          fontSize: '1rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Choose an available date for your appointment
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr,300px] gap-6">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 300px',
+        gap: '1.5rem'
+      }}>
         {/* Calendar */}
-        <Card className="p-6">
+        <div style={{
+          background: '#042A5C',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          border: '1px solid rgba(47, 139, 255, 0.3)'
+        }}>
           <div className="calendar-wrapper">
             <Calendar
               mode="single"
@@ -248,12 +286,12 @@ export default function DateSelectionStep({
                   borderRadius: '8px'
                 },
                 selected: {
-                  background: 'linear-gradient(135deg, #0077b6 0%, #023e8a 100%) !important', // Professional blue gradient
+                  background: 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%) !important',
                   color: '#ffffff !important',
                   fontWeight: '700',
-                  border: '3px solid #03045e !important',
+                  border: '3px solid #2F8BFF !important',
                   borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0, 119, 182, 0.4), 0 0 0 4px rgba(0, 119, 182, 0.1)',
+                  boxShadow: '0 4px 12px rgba(47, 139, 255, 0.4), 0 0 0 4px rgba(47, 139, 255, 0.1)',
                   transform: 'scale(1.05)'
                 }
               }}
@@ -262,54 +300,135 @@ export default function DateSelectionStep({
           </div>
 
           {/* Legend */}
-          <div className="mt-6 pt-6 border-t border-slate-200">
-            <h4 className="text-sm font-semibold text-slate-900 mb-3">
+          <div style={{
+            marginTop: '1.5rem',
+            paddingTop: '1.5rem',
+            borderTop: '1px solid rgba(147, 197, 253, 0.2)'
+          }}>
+            <h4 style={{
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              color: 'white',
+              marginBottom: '1rem',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
               Availability Legend
             </h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-8 h-8 rounded-md shadow-sm border-2 border-sky-300"
-                  style={{ background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)' }}
-                />
-                <span className="text-xs font-medium text-slate-700">Plenty</span>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.75rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+                  border: '2px solid #7dd3fc',
+                  flexShrink: 0
+                }} />
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '500',
+                  color: '#93c5fd',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Plenty
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-8 h-8 rounded-md shadow-sm border-2 border-amber-400"
-                  style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)' }}
-                />
-                <span className="text-xs font-medium text-slate-700">Limited</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  border: '2px solid #fbbf24',
+                  flexShrink: 0
+                }} />
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '500',
+                  color: '#93c5fd',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Limited
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-8 h-8 rounded-md shadow-md border-2 border-slate-800"
-                  style={{ 
-                    background: 'linear-gradient(135deg, #0077b6 0%, #023e8a 100%)',
-                    boxShadow: '0 2px 8px rgba(0, 119, 182, 0.3)'
-                  }}
-                />
-                <span className="text-xs font-medium text-slate-700">Selected</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  background: 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)',
+                  border: '2px solid #2F8BFF',
+                  boxShadow: '0 2px 8px rgba(47, 139, 255, 0.3)',
+                  flexShrink: 0
+                }} />
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '500',
+                  color: '#93c5fd',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Selected
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-md bg-slate-200 border-2 border-slate-300" />
-                <span className="text-xs font-medium text-slate-500">Unavailable</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  background: '#f1f5f9',
+                  border: '2px solid #cbd5e1',
+                  flexShrink: 0
+                }} />
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '500',
+                  color: '#93c5fd',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Unavailable
+                </span>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Selected Date Info */}
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {selectedDate ? (
-            <Card className="p-4 bg-blue-50 border-blue-200">
-              <div className="flex items-start gap-3">
-                <CalendarIcon className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div style={{
+              background: 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              border: '2px solid #2F8BFF'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                <CalendarIcon style={{
+                  width: '20px',
+                  height: '20px',
+                  color: '#10b981',
+                  flexShrink: 0,
+                  marginTop: '2px'
+                }} />
                 <div>
-                  <h4 className="font-semibold text-blue-900 mb-1">
+                  <h4 style={{
+                    fontWeight: '600',
+                    color: 'white',
+                    marginBottom: '0.5rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
                     Selected Date
                   </h4>
-                  <p className="text-lg font-bold text-blue-900 mb-2">
+                  <p style={{
+                    fontSize: '1.125rem',
+                    fontWeight: '700',
+                    color: 'white',
+                    marginBottom: '0.5rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
                     {selectedDate.toLocaleDateString('en-US', {
                       weekday: 'long',
                       month: 'long',
@@ -321,7 +440,11 @@ export default function DateSelectionStep({
                     const availability = getDateAvailability(selectedDate);
                     if (availability) {
                       return (
-                        <p className="text-sm text-blue-700">
+                        <p style={{
+                          fontSize: '0.875rem',
+                          color: '#93c5fd',
+                          fontFamily: 'Poppins, sans-serif'
+                        }}>
                           {availability.availableSlots} of {availability.totalSlots} time slots available
                         </p>
                       );
@@ -330,80 +453,173 @@ export default function DateSelectionStep({
                   })()}
                 </div>
               </div>
-            </Card>
+            </div>
           ) : (
-            <Card className="p-4 bg-slate-50 border-slate-200">
-              <div className="flex items-start gap-3">
-                <CalendarIcon className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
+            <div style={{
+              background: '#042A5C',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              border: '1px solid rgba(47, 139, 255, 0.3)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                <CalendarIcon style={{
+                  width: '20px',
+                  height: '20px',
+                  color: '#64748b',
+                  flexShrink: 0,
+                  marginTop: '2px'
+                }} />
                 <div>
-                  <h4 className="font-semibold text-slate-600 mb-1">
+                  <h4 style={{
+                    fontWeight: '600',
+                    color: '#93c5fd',
+                    marginBottom: '0.25rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
                     No Date Selected
                   </h4>
-                  <p className="text-sm text-slate-500">
+                  <p style={{
+                    fontSize: '0.875rem',
+                    color: '#64748b',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
                     Click on a green or yellow date to select
                   </p>
                 </div>
               </div>
-            </Card>
+            </div>
           )}
 
           {/* Appointment Details Summary */}
-          <Card className="p-4">
-            <h4 className="font-semibold text-slate-900 mb-3">
+          <div style={{
+            background: '#042A5C',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            border: '1px solid rgba(47, 139, 255, 0.3)'
+          }}>
+            <h4 style={{
+              fontWeight: '600',
+              color: 'white',
+              marginBottom: '1rem',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
               Appointment Details
             </h4>
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <p className="text-xs text-slate-600 mb-1">Services</p>
-                <p className="text-sm font-medium text-slate-900">
+                <p style={{
+                  fontSize: '0.75rem',
+                  color: '#93c5fd',
+                  marginBottom: '0.25rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Services
+                </p>
+                <p style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: 'white',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
                   {services.length} service{services.length !== 1 ? 's' : ''} selected
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-600 mb-1">Vehicles</p>
-                <p className="text-sm font-medium text-slate-900">
+                <p style={{
+                  fontSize: '0.75rem',
+                  color: '#93c5fd',
+                  marginBottom: '0.25rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Vehicles
+                </p>
+                <p style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: 'white',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
                   {vehicles.length} vehicle{vehicles.length !== 1 ? 's' : ''} selected
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-600 mb-1">Total Duration</p>
-                <p className="text-sm font-medium text-slate-900">
+                <p style={{
+                  fontSize: '0.75rem',
+                  color: '#93c5fd',
+                  marginBottom: '0.25rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Total Duration
+                </p>
+                <p style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: 'white',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
                   {services.reduce((sum, s) => sum + (s.estimatedDuration * 60), 0) * vehicles.length} minutes
                 </p>
               </div>
             </div>
-          </Card>
+          </div>
 
           {/* Info Card */}
-          <Card className="p-4 bg-slate-50">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-slate-600 flex-shrink-0 mt-0.5" />
+          <div style={{
+            background: 'rgba(59, 130, 246, 0.1)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            border: '1px solid rgba(59, 130, 246, 0.3)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+              <AlertCircle style={{
+                width: '20px',
+                height: '20px',
+                color: '#60a5fa',
+                flexShrink: 0,
+                marginTop: '2px'
+              }} />
               <div>
-                <h4 className="text-sm font-semibold text-slate-900 mb-1">
+                <h4 style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  color: '#1d4ed8',
+                  marginBottom: '0.25rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
                   Booking Window
                 </h4>
-                <p className="text-sm text-slate-600">
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#3b82f6',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
                   You can book appointments up to 30 days in advance. Bookings require at least 24 hours notice.
                 </p>
               </div>
             </div>
-          </Card>
+          </div>
 
           {/* Refresh Button */}
           <Button
             variant="outline"
             onClick={fetchAvailableDates}
             disabled={loading}
-            className="w-full"
+            style={{
+              width: '100%',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              fontFamily: 'Poppins, sans-serif',
+              fontWeight: '500'
+            }}
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 style={{ width: '16px', height: '16px', marginRight: '0.5rem' }} className="animate-spin" />
                 Refreshing...
               </>
             ) : (
               <>
-                <CalendarIcon className="w-4 h-4 mr-2" />
+                <CalendarIcon style={{ width: '16px', height: '16px', marginRight: '0.5rem' }} />
                 Refresh Availability
               </>
             )}

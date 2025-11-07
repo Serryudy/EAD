@@ -5,9 +5,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
-import { Clock, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Clock, AlertCircle, Loader2 } from 'lucide-react';
 
 interface TimeSlot {
   startTime: string;
@@ -18,12 +17,6 @@ interface TimeSlot {
   capacityUsed: number;
   capacityRemaining: number;
   totalCapacity: number;
-}
-
-interface SlotSummary {
-  fullyAvailable: number;
-  limitedAvailable: number;
-  fullyBooked: number;
 }
 
 interface Service {
@@ -48,9 +41,8 @@ export default function TimeSlotSelectionStep({
   onSlotChange
 }: TimeSlotSelectionStepProps) {
   const [slots, setSlots] = useState<TimeSlot[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [summary, setSummary] = useState<SlotSummary | null>(null);
 
   const fetchAvailableSlots = async () => {
     try {
@@ -84,7 +76,6 @@ export default function TimeSlotSelectionStep({
 
       if (data.success) {
         setSlots(data.slots || []);
-        setSummary(data.summary);
         
         if (!data.slots || data.slots.length === 0) {
           console.warn('⚠️ No slots available. Message:', data.message);
@@ -118,90 +109,138 @@ export default function TimeSlotSelectionStep({
     }
   };
 
-  const getSlotStyle = (slot: TimeSlot) => {
-    const isSelected = selectedSlot?.startTime === slot.startTime;
-    
-    if (!slot.isAvailable) {
-      return 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60';
-    }
-    
-    if (isSelected) {
-      return 'bg-gradient-to-br from-[#0077b6] to-[#023e8a] border-[#03045e] text-white shadow-xl scale-105 ring-4 ring-blue-200';
-    }
-    
-    if (slot.capacityRemaining === 1) {
-      return 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-300 text-amber-900 hover:shadow-lg hover:scale-102 hover:border-amber-400 transition-all';
-    }
-    
-    return 'bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200 text-sky-900 hover:shadow-lg hover:scale-102 hover:border-sky-300 transition-all';
-  };
-
-  const getCapacityBadge = (slot: TimeSlot) => {
-    if (!slot.isAvailable) {
-      return <span className="text-xs text-slate-500">Fully Booked</span>;
-    }
-    
-    if (slot.capacityRemaining === 1) {
-      return <span className="text-xs text-amber-600 font-semibold">Last Slot!</span>;
-    }
-    
-    return <span className="text-xs text-sky-600">{slot.capacityRemaining} spots left</span>;
-  };
-
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
-        <p className="text-slate-600">Loading available time slots...</p>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '3rem 0',
+        textAlign: 'center'
+      }}>
+        <Loader2 style={{
+          width: '48px',
+          height: '48px',
+          color: '#2F8BFF',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1rem'
+        }} />
+        <p style={{
+          color: '#64748b',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
+          Loading available time slots...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="p-6 bg-red-50 border-red-200">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
+      <div style={{
+        padding: '1.5rem',
+        background: 'rgba(239, 68, 68, 0.1)',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+        borderRadius: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+          <AlertCircle style={{
+            width: '24px',
+            height: '24px',
+            color: '#ef4444',
+            flexShrink: 0
+          }} />
           <div>
-            <h4 className="font-semibold text-red-900 mb-1">Error Loading Time Slots</h4>
-            <p className="text-sm text-red-700">{error}</p>
+            <h4 style={{
+              fontWeight: '600',
+              color: '#991b1b',
+              marginBottom: '0.25rem',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
+              Error Loading Time Slots
+            </h4>
+            <p style={{
+              fontSize: '0.875rem',
+              color: '#dc2626',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
+              {error}
+            </p>
             <Button 
               onClick={fetchAvailableSlots}
               variant="outline"
-              className="mt-3"
+              style={{
+                marginTop: '0.75rem',
+                padding: '0.5rem 1rem',
+                borderRadius: '6px',
+                fontFamily: 'Poppins, sans-serif'
+              }}
             >
               Try Again
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
     );
   }
 
   if (slots.length === 0) {
     return (
-      <Card className="p-6 bg-amber-50 border-amber-200">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0" />
+      <div style={{
+        padding: '1.5rem',
+        background: 'rgba(251, 191, 36, 0.1)',
+        border: '1px solid rgba(251, 191, 36, 0.3)',
+        borderRadius: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+          <AlertCircle style={{
+            width: '24px',
+            height: '24px',
+            color: '#fbbf24',
+            flexShrink: 0
+          }} />
           <div>
-            <h4 className="font-semibold text-amber-900 mb-1">No Slots Available</h4>
-            <p className="text-sm text-amber-700">
+            <h4 style={{
+              fontWeight: '600',
+              color: '#92400e',
+              marginBottom: '0.25rem',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
+              No Slots Available
+            </h4>
+            <p style={{
+              fontSize: '0.875rem',
+              color: '#d97706',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
               There are no available time slots for {date.toLocaleDateString()}. 
               Please select a different date.
             </p>
           </div>
         </div>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold text-[#03045e] mb-2">
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <h3 style={{
+          fontSize: '2rem',
+          fontWeight: '700',
+          color: '#0A2C5E',
+          marginBottom: '0.5rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Select Time Slot
         </h3>
-        <p className="text-slate-600">
+        <p style={{
+          color: '#64748b',
+          fontSize: '1rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Choose your preferred appointment time for {date.toLocaleDateString('en-US', {
             weekday: 'long',
             month: 'long',
@@ -211,110 +250,270 @@ export default function TimeSlotSelectionStep({
         </p>
       </div>
 
-      {/* Summary Cards */}
-      {summary && (
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <Card className="p-4 bg-gradient-to-br from-sky-50 via-blue-50 to-sky-100 border-sky-300 shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-br from-sky-600 to-blue-700 bg-clip-text text-transparent">
-                {summary.fullyAvailable}
-              </div>
-              <div className="text-xs text-sky-700 font-semibold mt-1">Plenty Available</div>
-            </div>
-          </Card>
-          <Card className="p-4 bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 border-amber-300 shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-center">
-              <div className="text-3xl font-bold bg-gradient-to-br from-amber-600 to-orange-700 bg-clip-text text-transparent">
-                {summary.limitedAvailable}
-              </div>
-              <div className="text-xs text-amber-700 font-semibold mt-1">Limited Slots</div>
-            </div>
-          </Card>
-          <Card className="p-4 bg-gradient-to-br from-slate-100 via-slate-150 to-slate-200 border-slate-300 shadow-sm">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-slate-600">
-                {summary.fullyBooked}
-              </div>
-              <div className="text-xs text-slate-600 font-semibold mt-1">Fully Booked</div>
-            </div>
-          </Card>
-        </div>
-      )}
-
       {/* Time Slots Grid */}
-      <Card className="p-6 shadow-md">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {slots.map((slot) => (
-            <button
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+        gap: '1rem',
+        marginBottom: '2rem'
+      }}>
+        {slots.map((slot) => {
+          const isSelected = selectedSlot?.startTime === slot.startTime;
+          
+          return (
+            <div
               key={slot.startTime}
               onClick={() => handleSlotSelect(slot)}
-              disabled={!slot.isAvailable}
-              className={`
-                relative p-5 rounded-xl border-2 transition-all duration-300
-                ${getSlotStyle(slot)}
-                ${!slot.isAvailable ? '' : 'cursor-pointer active:scale-95'}
-              `}
+              style={{
+                background: !slot.isAvailable 
+                  ? '#f1f5f9'
+                  : isSelected 
+                    ? 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)'
+                    : slot.capacityRemaining === 1
+                      ? 'rgba(251, 191, 36, 0.1)'
+                      : '#042A5C',
+                border: !slot.isAvailable 
+                  ? '1px solid #cbd5e1'
+                  : isSelected 
+                    ? '2px solid #2F8BFF'
+                    : slot.capacityRemaining === 1
+                      ? '1px solid rgba(251, 191, 36, 0.5)'
+                      : '1px solid rgba(47, 139, 255, 0.3)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                cursor: slot.isAvailable ? 'pointer' : 'not-allowed',
+                transition: 'all 0.3s ease',
+                opacity: slot.isAvailable ? 1 : 0.6,
+                position: 'relative'
+              }}
+              onMouseEnter={(e) => {
+                if (slot.isAvailable && !isSelected) {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(47, 139, 255, 0.2)';
+                  if (slot.capacityRemaining === 1) {
+                    e.currentTarget.style.border = '1px solid #fbbf24';
+                  } else {
+                    e.currentTarget.style.border = '1px solid #2F8BFF';
+                  }
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (slot.isAvailable && !isSelected) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                  if (slot.capacityRemaining === 1) {
+                    e.currentTarget.style.border = '1px solid rgba(251, 191, 36, 0.5)';
+                  } else {
+                    e.currentTarget.style.border = '1px solid rgba(47, 139, 255, 0.3)';
+                  }
+                }
+              }}
             >
-              <div className="flex flex-col items-center gap-2">
-                <Clock className={`w-6 h-6 ${selectedSlot?.startTime === slot.startTime ? 'text-white' : ''}`} />
-                <div className="font-bold text-lg">{slot.displayTime}</div>
-                <div className="text-sm opacity-80">{slot.displayEndTime}</div>
-                <div className="mt-1">
-                  {getCapacityBadge(slot)}
+              {/* Selection Check */}
+              {isSelected && (
+                <div style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
-                
-                {selectedSlot?.startTime === slot.startTime && (
-                  <CheckCircle2 className="w-6 h-6 absolute top-2 right-2 text-white animate-pulse" />
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <Clock 
+                  color={!slot.isAvailable ? '#94a3b8' : isSelected ? '#2F8BFF' : slot.capacityRemaining === 1 ? '#fbbf24' : '#2F8BFF'} 
+                  size={24} 
+                />
+                <div style={{ flex: 1 }}>
+                  <p style={{
+                    fontSize: '1.125rem',
+                    fontWeight: '600',
+                    color: !slot.isAvailable ? '#94a3b8' : isSelected ? 'white' : slot.capacityRemaining === 1 ? '#d97706' : 'white',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {slot.displayTime}
+                  </p>
+                  <p style={{
+                    fontSize: '0.875rem',
+                    color: !slot.isAvailable ? '#cbd5e1' : isSelected ? '#93c5fd' : slot.capacityRemaining === 1 ? '#fde68a' : '#93c5fd',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {slot.displayEndTime}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                paddingTop: '0.75rem',
+                borderTop: `1px solid ${!slot.isAvailable ? '#e2e8f0' : isSelected ? 'rgba(147, 197, 253, 0.3)' : slot.capacityRemaining === 1 ? 'rgba(251, 191, 36, 0.3)' : 'rgba(147, 197, 253, 0.2)'}`,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: !slot.isAvailable ? '#94a3b8' : isSelected ? '#93c5fd' : slot.capacityRemaining === 1 ? '#d97706' : '#93c5fd',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  {!slot.isAvailable ? 'Fully Booked' : slot.capacityRemaining === 1 ? 'Last Slot!' : `${slot.capacityRemaining} spots left`}
+                </span>
+                {slot.isAvailable && (
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: isSelected ? '#10b981' : slot.capacityRemaining === 1 ? '#fbbf24' : '#2F8BFF'
+                  }} />
                 )}
               </div>
-            </button>
-          ))}
-        </div>
+            </div>
+          );
+        })}
+      </div>
 
-        {/* Legend */}
-        <div className="mt-8 pt-6 border-t border-slate-200">
-          <h4 className="text-sm font-semibold text-slate-900 mb-4">Slot Status Legend</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-50 to-blue-50 border-2 border-sky-200 shadow-sm" />
-              <span className="text-sm font-medium text-slate-700">Available</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-300 shadow-sm" />
-              <span className="text-sm font-medium text-slate-700">Limited</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0077b6] to-[#023e8a] border-2 border-[#03045e] shadow-lg" />
-              <span className="text-sm font-medium text-slate-700">Selected</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 border-2 border-slate-200" />
-              <span className="text-sm font-medium text-slate-500">Booked</span>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Selected Slot Info */}
+      {/* Selected Slot Summary */}
       {selectedSlot && (
-        <Card className="mt-6 p-5 bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100 border-blue-300 shadow-lg">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0077b6] to-[#023e8a] flex items-center justify-center shadow-md">
-              <CheckCircle2 className="w-7 h-7 text-white" />
-            </div>
-            <div className="flex-1">
-              <h4 className="font-semibold text-blue-900 mb-2 text-lg">Selected Time Slot</h4>
-              <p className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">
+        <div style={{
+          background: 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          border: '1px solid #2F8BFF',
+          boxShadow: '0 4px 12px rgba(10, 44, 94, 0.2)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem'
+          }}>
+            <Clock color="#10b981" size={24} />
+            <div>
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#93c5fd',
+                marginBottom: '0.25rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
+                Selected Time
+              </p>
+              <p style={{
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                color: 'white',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
                 {selectedSlot.displayTime} - {selectedSlot.displayEndTime}
               </p>
-              <p className="text-sm text-blue-700 mt-2 flex items-center gap-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                {selectedSlot.capacityRemaining} {selectedSlot.capacityRemaining === 1 ? 'slot' : 'slots'} remaining
-              </p>
             </div>
           </div>
-        </Card>
+        </div>
       )}
+
+      {/* Legend */}
+      <div style={{
+        background: '#042A5C',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        border: '1px solid rgba(47, 139, 255, 0.3)'
+      }}>
+        <h4 style={{
+          fontSize: '0.875rem',
+          fontWeight: '600',
+          color: 'white',
+          marginBottom: '1rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
+          Slot Status Legend
+        </h4>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '1rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: '#042A5C',
+              border: '1px solid rgba(47, 139, 255, 0.5)',
+              flexShrink: 0
+            }} />
+            <span style={{
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: '#93c5fd',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
+              Available
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: 'rgba(251, 191, 36, 0.1)',
+              border: '1px solid rgba(251, 191, 36, 0.5)',
+              flexShrink: 0
+            }} />
+            <span style={{
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: '#93c5fd',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
+              Limited
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)',
+              border: '2px solid #2F8BFF',
+              flexShrink: 0
+            }} />
+            <span style={{
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: '#93c5fd',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
+              Selected
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              flexShrink: 0
+            }} />
+            <span style={{
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: '#93c5fd',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
+              Booked
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

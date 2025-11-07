@@ -138,130 +138,288 @@ export default function ServiceSelectionStep({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-[#0077b6]" />
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '5rem 0',
+        textAlign: 'center'
+      }}>
+        <div>
+          <Loader2 style={{
+            width: '48px',
+            height: '48px',
+            color: '#2F8BFF',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1rem'
+          }} />
+          <p style={{
+            color: '#64748b',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            Loading services...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold text-[#03045e] mb-2">
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <h3 style={{
+          fontSize: '2rem',
+          fontWeight: '700',
+          color: '#0A2C5E',
+          marginBottom: '0.5rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Select Services
         </h3>
-        <p className="text-slate-600">
+        <p style={{
+          color: '#64748b',
+          fontSize: '1rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Choose one or more services for your appointment
         </p>
       </div>
 
       {/* Services Grid */}
-      <div className="grid md:grid-cols-2 gap-4 mb-6">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+        gap: '1.5rem',
+        marginBottom: '2rem'
+      }}>
         {services.map((service) => {
+          const selected = isSelected(service._id);
+          const IconComponent = getServiceIcon(service.name, service.category);
+          
           return (
-          <Card
-            key={service._id}
-            className={`p-4 cursor-pointer transition-all hover:shadow-md ${
-              isSelected(service._id)
-                ? 'border-2 border-[#0077b6] bg-blue-50'
-                : 'border-slate-200'
-            }`}
-            onClick={() => handleToggleService(service)}
-          >
-            <div className="flex items-start gap-4">
-              {/* Service Icon */}
-              <div style={{ 
-                width: '56px', 
-                height: '56px', 
-                borderRadius: '12px', 
-                background: 'linear-gradient(to bottom right, #3b82f6, #2563eb)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                flexShrink: 0
-              }}>
-                {service.name.toLowerCase().includes('ac') && <Wind color="white" size={28} />}
-                {service.name.toLowerCase().includes('battery') && <Battery color="white" size={28} />}
-                {service.name.toLowerCase().includes('oil') && <Droplet color="white" size={28} />}
-                {service.name.toLowerCase().includes('brake') && <CircleDot color="white" size={28} />}
-                {service.name.toLowerCase().includes('coolant') && <Droplet color="white" size={28} />}
-                {service.name.toLowerCase().includes('engine') && <Cog color="white" size={28} />}
-                {!service.name.toLowerCase().includes('ac') && 
-                 !service.name.toLowerCase().includes('battery') && 
-                 !service.name.toLowerCase().includes('oil') && 
-                 !service.name.toLowerCase().includes('brake') &&
-                 !service.name.toLowerCase().includes('coolant') &&
-                 !service.name.toLowerCase().includes('engine') && 
-                 <Wrench color="white" size={28} />}
-              </div>
-              
-              <div className="flex-1">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-slate-900 text-base">{service.name}</h4>
-                    <Badge variant="secondary" className="mt-1">
-                      {service.category}
-                    </Badge>
-                  </div>
-                  
-                  <Checkbox
-                    checked={isSelected(service._id)}
-                    onCheckedChange={() => handleToggleService(service)}
-                    className="ml-2 mt-1"
-                  />
+            <div
+              key={service._id}
+              onClick={() => handleToggleService(service)}
+              style={{
+                background: selected ? 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)' : '#042A5C',
+                border: selected ? '2px solid #2F8BFF' : '1px solid rgba(47, 139, 255, 0.3)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                position: 'relative'
+              }}
+              onMouseEnter={(e) => {
+                if (!selected) {
+                  e.currentTarget.style.border = '1px solid #2F8BFF';
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 8px 16px rgba(47, 139, 255, 0.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!selected) {
+                  e.currentTarget.style.border = '1px solid rgba(47, 139, 255, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }
+              }}
+            >
+              {/* Selection Check */}
+              {selected && (
+                <div style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: '#10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M11.6666 3.5L5.24992 9.91667L2.33325 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                {/* Icon */}
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '12px',
+                  background: selected 
+                    ? 'linear-gradient(135deg, #2F8BFF 0%, #1e6fd8 100%)'
+                    : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(47, 139, 255, 0.3)'
+                }}>
+                  <IconComponent color="white" size={28} />
                 </div>
 
-                <p className="text-sm text-slate-600 mb-3 line-clamp-2">
-                  {service.description || 'Professional service for your vehicle'}
-                </p>
+                <div style={{ flex: 1 }}>
+                  {/* Service Name */}
+                  <h4 style={{
+                    fontSize: '1.125rem',
+                    fontWeight: '600',
+                    color: 'white',
+                    marginBottom: '0.25rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {service.name}
+                  </h4>
 
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1 text-slate-600">
-                    <Clock className="w-4 h-4" />
-                    <span>{service.estimatedDuration}h</span>
+                  {/* Category Badge */}
+                  <div style={{
+                    display: 'inline-block',
+                    padding: '0.25rem 0.75rem',
+                    background: 'rgba(47, 139, 255, 0.2)',
+                    border: '1px solid rgba(47, 139, 255, 0.4)',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: '500',
+                    color: '#93c5fd',
+                    marginBottom: '0.75rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {service.category}
                   </div>
-                  <div className="flex items-center gap-1 text-[#0077b6] font-semibold">
-                    <DollarSign className="w-4 h-4" />
-                    <span>${service.basePrice.toFixed(2)}</span>
+
+                  {/* Description */}
+                  <p style={{
+                    fontSize: '0.875rem',
+                    color: '#93c5fd',
+                    marginBottom: '1rem',
+                    lineHeight: '1.5',
+                    fontFamily: 'Poppins, sans-serif',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {service.description || 'Professional service for your vehicle'}
+                  </p>
+
+                  {/* Details */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    paddingTop: '0.75rem',
+                    borderTop: '1px solid rgba(147, 197, 253, 0.2)'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Clock color="#93c5fd" size={16} />
+                      <span style={{
+                        fontSize: '0.875rem',
+                        color: '#e0e7ff',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}>
+                        {service.estimatedDuration}h
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <DollarSign color="#10b981" size={16} />
+                      <span style={{
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        color: '#10b981',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}>
+                        ${service.basePrice.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </Card>
           );
         })}
       </div>
 
       {/* Selection Summary */}
       {selectedServices.length > 0 && (
-        <Card className="p-4 bg-slate-50 border-slate-200">
-          <div className="flex items-center justify-between">
+        <div style={{
+          background: 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          border: '1px solid #2F8BFF',
+          boxShadow: '0 4px 12px rgba(10, 44, 94, 0.2)'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
             <div>
-              <p className="text-sm text-slate-600 mb-1">
+              <p style={{
+                fontSize: '0.875rem',
+                color: '#93c5fd',
+                marginBottom: '0.25rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
                 {selectedServices.length} service{selectedServices.length > 1 ? 's' : ''} selected
               </p>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1 text-slate-900">
-                  <Clock className="w-4 h-4" />
-                  <span className="font-semibold">~{totalDuration}h total</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Clock color="#e0e7ff" size={20} />
+                  <span style={{
+                    fontWeight: '600',
+                    color: 'white',
+                    fontSize: '1.125rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    ~{totalDuration}h total
+                  </span>
                 </div>
-                <div className="flex items-center gap-1 text-[#0077b6]">
-                  <DollarSign className="w-4 h-4" />
-                  <span className="font-semibold text-lg">${totalCost.toFixed(2)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <DollarSign color="#10b981" size={20} />
+                  <span style={{
+                    fontWeight: '700',
+                    color: '#10b981',
+                    fontSize: '1.5rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    ${totalCost.toFixed(2)}
+                  </span>
                 </div>
               </div>
             </div>
-            <Wrench className="w-8 h-8 text-slate-400" />
+            <Wrench color="#2F8BFF" size={32} />
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Empty State */}
       {services.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-600">No services available at the moment</p>
+        <div style={{
+          textAlign: 'center',
+          padding: '3rem 1.5rem',
+          background: '#042A5C',
+          borderRadius: '12px',
+          border: '1px solid #2F8BFF'
+        }}>
+          <Wrench style={{
+            width: '64px',
+            height: '64px',
+            color: '#2F8BFF',
+            margin: '0 auto 1rem'
+          }} />
+          <p style={{
+            color: '#93c5fd',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            No services available at the moment
+          </p>
         </div>
       )}
     </div>
