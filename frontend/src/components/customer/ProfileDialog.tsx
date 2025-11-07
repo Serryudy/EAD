@@ -16,11 +16,15 @@ import { userApi, vehicleApi, type UserUpdateDto } from '../../services/api';
 import type { User as UserType } from '../../contexts/AuthContext';
 
 interface Vehicle {
-  id: number;
+  _id: string;  // MongoDB uses _id
+  id?: number;   // Optional for backwards compatibility
   make: string;
   model: string;
   year: number;
   licensePlate: string;
+  ownerId?: string;
+  ownerName?: string;
+  isActive?: boolean;
 }
 
 interface ProfileDialogProps {
@@ -34,7 +38,7 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [editingVehicleId, setEditingVehicleId] = useState<number | null>(null);
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState({
     firstName: user.firstName,
     lastName: user.lastName,
@@ -158,7 +162,7 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
   };
 
   const handleEditVehicle = (vehicle: Vehicle) => {
-    setEditingVehicleId(vehicle.id);
+    setEditingVehicleId(vehicle._id);
     setEditingVehicle({
       make: vehicle.make,
       model: vehicle.model,
@@ -167,7 +171,7 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
     });
   };
 
-  const handleUpdateVehicle = async (id: number) => {
+  const handleUpdateVehicle = async (vehicleId: string) => {
     try {
       setLoading(true);
       const vehicleData = {
@@ -177,9 +181,9 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
         licensePlate: editingVehicle.licensePlate
       };
 
-      const response = await vehicleApi.updateVehicle(id.toString(), vehicleData);
+      const response = await vehicleApi.updateVehicle(vehicleId, vehicleData);
       if (response.success) {
-        setVehicles(vehicles.map(v => v.id === id ? { ...v, ...vehicleData } : v));
+        setVehicles(vehicles.map(v => v._id === vehicleId ? { ...v, ...vehicleData } : v));
         setEditingVehicleId(null);
         alert('Vehicle updated successfully!');
       } else {
@@ -229,16 +233,16 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
     }
   };
 
-  const handleRemoveVehicle = async (id: number) => {
+  const handleRemoveVehicle = async (vehicleId: string) => {
     if (!confirm('Are you sure you want to remove this vehicle?')) {
       return;
     }
     
     try {
       setLoading(true);
-      const response = await vehicleApi.deleteVehicle(id.toString());
+      const response = await vehicleApi.deleteVehicle(vehicleId);
       if (response.success) {
-        setVehicles(vehicles.filter(v => v.id !== id));
+        setVehicles(vehicles.filter(v => v._id !== vehicleId));
         alert('Vehicle removed successfully!');
       } else {
         alert('Failed to remove vehicle: ' + response.message);
@@ -513,7 +517,7 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
                         </div>
                         <div className="flex gap-2">
                           <Button 
-                            onClick={() => handleUpdateVehicle(vehicle.id)}
+                            onClick={() => handleUpdateVehicle(vehicle._id)}
                             disabled={loading}
                             size="sm"
                             className="bg-[#0077b6] hover:bg-[#03045e]"
@@ -559,7 +563,7 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleRemoveVehicle(vehicle.id)}
+                            onClick={() => handleRemoveVehicle(vehicle._id)}
                             disabled={loading}
                             className="text-red-500 hover:text-red-700 hover:bg-red-50"
                           >

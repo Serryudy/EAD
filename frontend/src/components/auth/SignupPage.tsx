@@ -64,7 +64,7 @@ export function SignupPage() {
       await new Promise(resolve => setTimeout(resolve, 500)); // Increased to 500ms
 
       // After successful signup, if vehicle details are provided, create the vehicle
-      let vehicleError = '';
+
       if (vehicleMake && vehicleModel && licensePlate) {
         console.log('🚗 Attempting to add vehicle during signup...');
         const token = sessionStorage.getItem('authToken');

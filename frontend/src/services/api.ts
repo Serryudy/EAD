@@ -67,12 +67,14 @@ export interface UserDto {
 }
 
 export interface VehicleDto {
-  id: number;
+  _id: string;
   make: string;
   model: string;
   year: number;
   licensePlate: string;
-  userId: number;
+  ownerId: string;
+  ownerName?: string;
+  isActive?: boolean;
 }
 
 // API utility function
@@ -196,7 +198,7 @@ export const userApi = {
 // Vehicle API functions
 export const vehicleApi = {
   // Add vehicle for customer
-  addVehicle: async (vehicleData: Omit<VehicleDto, 'id' | 'userId'>): Promise<ApiResponse<VehicleDto>> => {
+  addVehicle: async (vehicleData: Omit<VehicleDto, '_id' | 'ownerId' | 'ownerName' | 'isActive'>): Promise<ApiResponse<VehicleDto>> => {
     return apiCall<VehicleDto>('/vehicles', {
       method: 'POST',
       body: JSON.stringify(vehicleData),
