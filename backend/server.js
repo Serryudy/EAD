@@ -6,6 +6,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const http = require('http');
+const { Server } = require('socket.io');
 const authRoutes = require('./routes/auth');
 const appointmentRoutes = require('./routes/appointments');
 const vehicleRoutes = require('./routes/vehicles');
@@ -14,9 +16,28 @@ const workLogRoutes = require('./routes/workLogs');
 const dashboardRoutes = require('./routes/dashboard');
 const serviceRecordRoutes = require('./routes/serviceRecords');
 const profileRoutes = require('./routes/profile');
+const notificationRoutes = require('./routes/notifications');
+const notificationService = require('./services/notificationService');
 
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.io with CORS
+const io = new Server(server, {
+  cors: {
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      process.env.FRONTEND_URL
+    ].filter(Boolean),
+    credentials: true,
+    methods: ['GET', 'POST']
+  }
+});
+
+// Initialize notification service with Socket.io
+notificationService.initialize(io);
 
 // Middleware
 app.use(cors({
@@ -53,6 +74,7 @@ app.use('/api/work-logs', workLogRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/service-records', serviceRecordRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -147,8 +169,12 @@ mongoose.connection.on('error', (err) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📧 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔐 JWT Secret configured: ${process.env.JWT_SECRET ? 'Yes' : 'No'}`);
+  console.log(`🔌 Socket.io initialized for real-time notifications`);
 });
+
+// Export io for use in other modules if needed
+module.exports = { app, server, io };
