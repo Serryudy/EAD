@@ -1,141 +1,487 @@
-import { ArrowLeft, CheckCircle2, Clock, Wrench, Shield, Package } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, CheckCircle2, Clock, Wrench, Shield, Package, Loader2, Car, User, AlertCircle } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { StatusBadge } from '../shared/StatusBadge';
-import type { User } from '../../contexts/AuthContext';
+import type { User as UserType } from '../../contexts/AuthContext';
 
 interface ServiceProgressProps {
-  user: User;
+  user: UserType;
   onNavigate: (page: string) => void;
 }
 
+interface Stage {
+  name: string;
+  status: 'pending' | 'in-progress' | 'completed';
+  timestamp: string | null;
+  icon: string;
+}
+
+interface Update {
+  time: string;
+  message: string;
+  createdAt: string;
+}
+
+interface ActiveService {
+  id: string;
+  service: {
+    _id: string | null;
+    name: string;
+    category: string;
+    description?: string;
+  };
+  vehicle: {
+    make: string;
+    model: string;
+    year: number;
+    licensePlate: string;
+    type: string;
+  };
+  technician: {
+    _id: string | null;
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    specialization: string;
+  };
+  startedAt: string;
+  estimatedCompletion: string;
+  currentStage: string;
+  progress: number;
+  stages: Stage[];
+  updates: Update[];
+}
+
 export function ServiceProgress({ onNavigate }: ServiceProgressProps) {
-  const activeServices = [
-    {
-      id: '1',
-      service: 'Oil Change & Filter Replacement',
-      startedAt: '2024-11-03 10:00 AM',
-      estimatedCompletion: '2024-11-03 12:00 PM',
-      currentStage: 'in-progress',
-      progress: 75,
-      technician: 'Mike Johnson',
-      stages: [
-        { name: 'Received', status: 'completed', time: '10:00 AM', icon: Package },
-        { name: 'In Progress', status: 'in-progress', time: '10:30 AM', icon: Wrench },
-        { name: 'Quality Check', status: 'pending', time: 'Pending', icon: Shield },
-        { name: 'Completed', status: 'pending', time: 'Pending', icon: CheckCircle2 }
-      ],
-      updates: [
-        { time: '11:30 AM', message: 'Quality inspection in progress' },
-        { time: '10:45 AM', message: 'Oil filter replaced successfully' },
-        { time: '10:30 AM', message: 'Started oil change procedure' },
-        { time: '10:00 AM', message: 'Vehicle received and checked in' }
-      ]
-    },
-    {
-      id: '2',
-      service: 'Engine Tuning & Diagnostics',
-      startedAt: '2024-11-03 08:00 AM',
-      estimatedCompletion: '2024-11-03 2:00 PM',
-      currentStage: 'in-progress',
-      progress: 60,
-      technician: 'Sarah Williams',
-      stages: [
-        { name: 'Received', status: 'completed', time: '8:00 AM', icon: Package },
-        { name: 'In Progress', status: 'in-progress', time: '8:30 AM', icon: Wrench },
-        { name: 'Quality Check', status: 'pending', time: 'Pending', icon: Shield },
-        { name: 'Completed', status: 'pending', time: 'Pending', icon: CheckCircle2 }
-      ],
-      updates: [
-        { time: '11:00 AM', message: 'Engine diagnostics 60% complete' },
-        { time: '9:30 AM', message: 'Spark plugs inspection completed' },
-        { time: '8:30 AM', message: 'Initial diagnostics scan started' },
-        { time: '8:00 AM', message: 'Vehicle received for engine tune-up' }
-      ]
+  const [activeServices, setActiveServices] = useState<ActiveService[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchActiveServices();
+  }, []);
+
+  const fetchActiveServices = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const token = sessionStorage.getItem('authToken');
+      if (!token) {
+        setError('Please log in to view service progress');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/appointments/active-services', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch active services');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setActiveServices(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching active services:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load active services');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Helper function to get icon component based on icon name
+  const getIconComponent = (iconName: string) => {
+    const iconMap: Record<string, typeof Package> = {
+      Package,
+      Wrench,
+      Shield,
+      CheckCircle2,
+      Clock
+    };
+    return iconMap[iconName] || Package;
+  };
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '5rem 0',
+        textAlign: 'center'
+      }}>
+        <div>
+          <Loader2 style={{
+            width: '48px',
+            height: '48px',
+            color: '#2F8BFF',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1rem'
+          }} />
+          <p style={{
+            color: 'white',
+            fontFamily: 'Poppins, sans-serif',
+            fontSize: '1rem'
+          }}>
+            Loading active services...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        textAlign: 'center',
+        padding: '3rem 1rem'
+      }}>
+        <div style={{
+          background: '#042A5C',
+          border: '2px solid #2F8BFF',
+          borderRadius: '12px',
+          padding: '2rem',
+          maxWidth: '500px',
+          margin: '0 auto'
+        }}>
+          <AlertCircle style={{
+            width: '48px',
+            height: '48px',
+            color: '#ef4444',
+            margin: '0 auto 1rem'
+          }} />
+          <p style={{
+            color: 'white',
+            marginBottom: '1.5rem',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            {error}
+          </p>
+          <Button 
+            onClick={fetchActiveServices}
+            style={{
+              background: '#2F8BFF',
+              color: 'white',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'Poppins, sans-serif',
+              fontSize: '1rem',
+              fontWeight: '500'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#1E7FEF'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#2F8BFF'}
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeServices.length === 0) {
+    return (
+      <div style={{
+        textAlign: 'center',
+        padding: '3rem 1rem'
+      }}>
+        <div style={{
+          background: '#042A5C',
+          border: '2px solid #2F8BFF',
+          borderRadius: '12px',
+          padding: '3rem 2rem',
+          maxWidth: '500px',
+          margin: '0 auto'
+        }}>
+          <Wrench style={{
+            width: '64px',
+            height: '64px',
+            color: '#60a5fa',
+            margin: '0 auto 1.5rem'
+          }} />
+          <h3 style={{
+            fontSize: '1.5rem',
+            fontWeight: '700',
+            color: 'white',
+            marginBottom: '0.75rem',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            No Active Services
+          </h3>
+          <p style={{
+            color: '#93c5fd',
+            marginBottom: '2rem',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            You don't have any services in progress at the moment
+          </p>
+          <Button 
+            onClick={() => onNavigate('appointment-booking')}
+            style={{
+              background: '#2F8BFF',
+              color: 'white',
+              padding: '0.75rem 2rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'Poppins, sans-serif',
+              fontSize: '1rem',
+              fontWeight: '500'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#1E7FEF'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#2F8BFF'}
+          >
+            Book a Service
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 md:p-6 w-full">
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => onNavigate('customer-dashboard')}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Dashboard
-        </Button>
-        <h2 className="text-[#03045e]">Service Progress</h2>
-        <p className="text-slate-600">Track your vehicle services in real-time</p>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+        <h3 style={{
+          fontSize: '2rem',
+          fontWeight: '700',
+          color: '#0A2C5E',
+          marginBottom: '0.5rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
+          Service Progress
+        </h3>
+        <p style={{
+          color: '#64748b',
+          fontSize: '1rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
+          Track your vehicle services in real-time
+        </p>
       </div>
 
-      <div className="space-y-6">
-        {activeServices.map((service) => (
-            <Card key={service.id} className="p-6 border-slate-200">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {activeServices.map((service) => {
+          const IconComponent = getIconComponent;
+          return (
+            <div 
+              key={service.id} 
+              style={{
+                background: '#042A5C',
+                border: '2px solid #2F8BFF',
+                borderRadius: '16px',
+                padding: '1.5rem',
+                boxShadow: '0 4px 16px rgba(47, 139, 255, 0.2)'
+              }}
+            >
               {/* Header */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 pb-6 border-b border-slate-200">
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                marginBottom: '1.5rem',
+                paddingBottom: '1.5rem',
+                borderBottom: '1px solid rgba(47, 139, 255, 0.3)'
+              }}>
                 <div>
-                  <h3 className="text-[#03045e]">{service.service}</h3>
-                  <p className="text-slate-600 mt-1">Started at {service.startedAt}</p>
+                  <h3 style={{
+                    fontSize: '1.5rem',
+                    fontWeight: '700',
+                    color: 'white',
+                    marginBottom: '0.5rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {service.service.name}
+                  </h3>
+                  <p style={{
+                    color: '#93c5fd',
+                    fontSize: '0.875rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    Started at {new Date(service.startedAt).toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    marginTop: '0.5rem'
+                  }}>
+                    <Car style={{ width: '16px', height: '16px', color: '#93c5fd' }} />
+                    <span style={{
+                      color: '#93c5fd',
+                      fontSize: '0.875rem',
+                      fontFamily: 'Poppins, sans-serif'
+                    }}>
+                      {service.vehicle.make} {service.vehicle.model} ({service.vehicle.licensePlate})
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
                   <StatusBadge status="in-progress" />
-                  <div className="text-right hidden md:block">
-                    <p className="text-slate-600">Progress</p>
-                    <p className="text-[#0077b6]">{service.progress}%</p>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{
+                      color: '#93c5fd',
+                      fontSize: '0.875rem',
+                      fontFamily: 'Poppins, sans-serif'
+                    }}>
+                      Progress
+                    </p>
+                    <p style={{
+                      fontSize: '2rem',
+                      fontWeight: '700',
+                      color: '#2F8BFF',
+                      fontFamily: 'Poppins, sans-serif'
+                    }}>
+                      {service.progress}%
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-slate-600">Overall Progress</span>
-                  <span className="text-[#0077b6]">{service.progress}%</span>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '0.5rem'
+                }}>
+                  <span style={{
+                    color: '#93c5fd',
+                    fontSize: '0.875rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    Overall Progress
+                  </span>
+                  <span style={{
+                    color: '#2F8BFF',
+                    fontWeight: '600',
+                    fontSize: '0.875rem',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
+                    {service.progress}%
+                  </span>
                 </div>
-                <Progress value={service.progress} className="h-2" />
+                <div style={{
+                  width: '100%',
+                  height: '8px',
+                  background: 'rgba(47, 139, 255, 0.2)',
+                  borderRadius: '999px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${service.progress}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #2F8BFF 0%, #60a5fa 100%)',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
               </div>
 
               {/* Timeline */}
-              <div className="mb-6">
-                <h4 className="text-slate-900 mb-4">Service Timeline</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{
+                  color: 'white',
+                  fontWeight: '600',
+                  marginBottom: '1rem',
+                  fontSize: '1.125rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Service Timeline
+                </h4>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: '1rem'
+                }}>
                   {service.stages.map((stage, index) => {
-                    const Icon = stage.icon;
+                    const StageIcon = IconComponent(stage.icon);
+                    const displayTime = stage.timestamp 
+                      ? new Date(stage.timestamp).toLocaleTimeString('en-US', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })
+                      : 'Pending';
+                    
                     return (
-                      <div key={index} className="relative">
-                        <div className={`p-4 rounded-xl border-2 transition-all ${
-                          stage.status === 'completed'
-                            ? 'border-green-500 bg-green-50'
+                      <div key={index} style={{ position: 'relative' }}>
+                        <div style={{
+                          padding: '1rem',
+                          borderRadius: '12px',
+                          border: stage.status === 'completed'
+                            ? '2px solid #10b981'
                             : stage.status === 'in-progress'
-                            ? 'border-[#0077b6] bg-[#90e0ef]/10'
-                            : 'border-slate-200 bg-white'
-                        }`}>
-                          <div className="flex flex-col items-center text-center gap-2">
-                            <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                              stage.status === 'completed'
-                                ? 'bg-green-500 text-white'
+                            ? '2px solid #2F8BFF'
+                            : '1px solid rgba(47, 139, 255, 0.3)',
+                          background: stage.status === 'completed'
+                            ? 'rgba(16, 185, 129, 0.1)'
+                            : stage.status === 'in-progress'
+                            ? 'rgba(47, 139, 255, 0.1)'
+                            : 'rgba(255, 255, 255, 0.05)',
+                          transition: 'all 0.3s ease'
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            textAlign: 'center',
+                            gap: '0.5rem'
+                          }}>
+                            <div style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '8px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: stage.status === 'completed'
+                                ? '#10b981'
                                 : stage.status === 'in-progress'
-                                ? 'bg-[#0077b6] text-white'
-                                : 'bg-slate-200 text-slate-500'
-                            }`}>
-                              <Icon className="h-5 w-5" />
+                                ? '#2F8BFF'
+                                : 'rgba(100, 116, 139, 0.5)'
+                            }}>
+                              <StageIcon style={{ width: '20px', height: '20px', color: 'white' }} />
                             </div>
                             <div>
-                              <p className={`${
-                                stage.status === 'pending' ? 'text-slate-500' : 'text-slate-900'
-                              }`}>
+                              <p style={{
+                                fontWeight: '500',
+                                color: stage.status === 'pending' ? '#93c5fd' : 'white',
+                                fontSize: '0.875rem',
+                                fontFamily: 'Poppins, sans-serif'
+                              }}>
                                 {stage.name}
                               </p>
-                              <p className="text-slate-600">{stage.time}</p>
+                              <p style={{
+                                color: '#93c5fd',
+                                fontSize: '0.75rem',
+                                fontFamily: 'Poppins, sans-serif'
+                              }}>
+                                {displayTime}
+                              </p>
                             </div>
                           </div>
                         </div>
-                        {index < service.stages.length - 1 && (
-                          <div className="hidden md:block absolute top-1/2 -right-2 w-4 h-0.5 bg-slate-200" />
-                        )}
                       </div>
                     );
                   })}
@@ -143,52 +489,160 @@ export function ServiceProgress({ onNavigate }: ServiceProgressProps) {
               </div>
 
               {/* Info Grid */}
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
-                <Card className="p-4 bg-slate-50 border-slate-200">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-[#0077b6] flex items-center justify-center">
-                      <Wrench className="h-5 w-5 text-white" />
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1.5rem'
+              }}>
+                <div style={{
+                  padding: '1rem',
+                  background: 'rgba(47, 139, 255, 0.1)',
+                  border: '1px solid rgba(47, 139, 255, 0.3)',
+                  borderRadius: '12px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '8px',
+                      background: '#2F8BFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <User style={{ width: '20px', height: '20px', color: 'white' }} />
                     </div>
                     <div>
-                      <p className="text-slate-600">Technician</p>
-                      <p className="text-slate-900">{service.technician}</p>
+                      <p style={{
+                        color: '#93c5fd',
+                        fontSize: '0.75rem',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}>
+                        Technician
+                      </p>
+                      <p style={{
+                        color: 'white',
+                        fontWeight: '600',
+                        fontSize: '0.875rem',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}>
+                        {service.technician.fullName}
+                      </p>
+                      <p style={{
+                        color: '#93c5fd',
+                        fontSize: '0.75rem',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}>
+                        {service.technician.specialization}
+                      </p>
                     </div>
                   </div>
-                </Card>
+                </div>
 
-                <Card className="p-4 bg-slate-50 border-slate-200">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-green-500 flex items-center justify-center">
-                      <Clock className="h-5 w-5 text-white" />
+                <div style={{
+                  padding: '1rem',
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '12px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '8px',
+                      background: '#10b981',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Clock style={{ width: '20px', height: '20px', color: 'white' }} />
                     </div>
                     <div>
-                      <p className="text-slate-600">Est. Completion</p>
-                      <p className="text-slate-900">{service.estimatedCompletion}</p>
+                      <p style={{
+                        color: '#93c5fd',
+                        fontSize: '0.75rem',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}>
+                        Est. Completion
+                      </p>
+                      <p style={{
+                        color: 'white',
+                        fontWeight: '600',
+                        fontSize: '0.875rem',
+                        fontFamily: 'Poppins, sans-serif'
+                      }}>
+                        {new Date(service.estimatedCompletion).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
                     </div>
                   </div>
-                </Card>
+                </div>
               </div>
 
               {/* Live Updates */}
+              {/* Live Updates */}
               <div>
-                <h4 className="text-slate-900 mb-3">Live Updates</h4>
-                <div className="space-y-2">
+                <h4 style={{
+                  color: 'white',
+                  fontWeight: '600',
+                  marginBottom: '1rem',
+                  fontSize: '1.125rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Live Updates
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {service.updates.map((update, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-slate-50">
-                      <div className={`h-2 w-2 rounded-full mt-2 flex-shrink-0 ${
-                        index === 0 ? 'bg-[#0077b6] animate-pulse' : 'bg-slate-400'
-                      }`} />
-                      <div className="flex-1">
-                        <p className="text-slate-900">{update.message}</p>
-                        <p className="text-slate-500">{update.time}</p>
+                    <div 
+                      key={index} 
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.75rem',
+                        padding: '0.75rem',
+                        borderRadius: '8px',
+                        background: 'rgba(47, 139, 255, 0.1)',
+                        border: '1px solid rgba(47, 139, 255, 0.2)'
+                      }}
+                    >
+                      <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        marginTop: '6px',
+                        flexShrink: 0,
+                        background: index === 0 ? '#2F8BFF' : '#60a5fa',
+                        animation: index === 0 ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'
+                      }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{
+                          color: 'white',
+                          fontSize: '0.875rem',
+                          fontFamily: 'Poppins, sans-serif'
+                        }}>
+                          {update.message}
+                        </p>
+                        <p style={{
+                          color: '#93c5fd',
+                          fontSize: '0.75rem',
+                          fontFamily: 'Poppins, sans-serif'
+                        }}>
+                          {update.time}
+                        </p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            </Card>
-          ))}
-        </div>
+            </div>
+          );
+        })}
       </div>
-    );
-  }
+    </div>
+  );
+}

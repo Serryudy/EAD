@@ -282,65 +282,140 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-6">
       {/* Progress Header */}
-      <Card className="p-6 mb-6 border-slate-200">
-        <div className="mb-4">
-          <h2 className="text-[#03045e] mb-2">Book an Appointment</h2>
-          <p className="text-slate-600">Complete the steps below to schedule your service</p>
+      <div style={{
+        background: 'white',
+        border: '2px solid #e2e8f0',
+        borderRadius: '16px',
+        padding: '1.5rem',
+        marginBottom: '1.5rem',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+      }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h2 style={{
+            fontSize: '1.875rem',
+            fontWeight: '700',
+            color: '#0A2C5E',
+            marginBottom: '0.5rem',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            Book an Appointment
+          </h2>
+          <p style={{
+            color: '#64748b',
+            fontSize: '1rem',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            Complete the steps below to schedule your service
+          </p>
         </div>
         
         {/* Progress Bar */}
-        <div className="mb-4">
-          <Progress value={progress} className="h-2" />
-          <div className="text-sm text-slate-600 mt-2">
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{
+            width: '100%',
+            height: '8px',
+            background: '#e2e8f0',
+            borderRadius: '999px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${progress}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #2F8BFF 0%, #60a5fa 100%)',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+          <div style={{
+            fontSize: '0.875rem',
+            color: '#64748b',
+            marginTop: '0.5rem',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
             Step {currentStepIndex + 1} of {steps.length}
           </div>
         </div>
 
         {/* Step Indicators */}
-        <div className="flex items-center justify-between">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {steps.map((step, index) => (
-            <div key={step.key} className="flex items-center flex-1">
+            <div key={step.key} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
               <button
                 onClick={() => handleStepClick(step.key)}
                 disabled={index > currentStepIndex}
-                className={`flex flex-col items-center ${
-                  index <= currentStepIndex ? 'cursor-pointer' : 'cursor-not-allowed'
-                }`}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  background: 'none',
+                  border: 'none',
+                  cursor: index <= currentStepIndex ? 'pointer' : 'not-allowed',
+                  padding: 0
+                }}
               >
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
-                    index < currentStepIndex
-                      ? 'bg-green-500 border-green-500 text-white'
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '3px solid',
+                    borderColor: index < currentStepIndex
+                      ? '#10b981'
                       : index === currentStepIndex
-                      ? 'bg-[#0077b6] border-[#0077b6] text-white'
-                      : 'bg-white border-slate-300 text-slate-400'
-                  }`}
+                      ? '#2F8BFF'
+                      : '#cbd5e1',
+                    background: index < currentStepIndex
+                      ? '#10b981'
+                      : index === currentStepIndex
+                      ? '#2F8BFF'
+                      : 'white',
+                    color: 'white',
+                    transition: 'all 0.3s ease',
+                    fontWeight: '700',
+                    fontSize: '1.125rem',
+                    fontFamily: 'Poppins, sans-serif',
+                    boxShadow: index <= currentStepIndex ? '0 4px 12px rgba(47, 139, 255, 0.3)' : 'none'
+                  }}
                 >
                   {index < currentStepIndex ? (
-                    <CheckCircle2 className="w-5 h-5" />
+                    <CheckCircle2 style={{ width: '24px', height: '24px' }} />
                   ) : (
-                    <span>{step.number}</span>
+                    <span style={{ color: index === currentStepIndex ? 'white' : '#94a3b8' }}>
+                      {step.number}
+                    </span>
                   )}
                 </div>
                 <span
-                  className={`text-xs mt-2 hidden md:block ${
-                    index <= currentStepIndex ? 'text-slate-900' : 'text-slate-400'
-                  }`}
+                  style={{
+                    fontSize: '0.75rem',
+                    marginTop: '0.5rem',
+                    display: window.innerWidth >= 768 ? 'block' : 'none',
+                    color: index <= currentStepIndex ? '#0A2C5E' : '#94a3b8',
+                    fontWeight: index <= currentStepIndex ? '600' : '400',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}
                 >
                   {step.label}
                 </span>
               </button>
               {index < steps.length - 1 && (
                 <div
-                  className={`flex-1 h-0.5 mx-2 ${
-                    index < currentStepIndex ? 'bg-green-500' : 'bg-slate-200'
-                  }`}
+                  style={{
+                    flex: 1,
+                    height: '3px',
+                    margin: '0 0.5rem',
+                    background: index < currentStepIndex ? '#10b981' : '#e2e8f0',
+                    transition: 'background 0.3s ease',
+                    borderRadius: '999px'
+                  }}
                 />
               )}
             </div>
           ))}
         </div>
-      </Card>
+      </div>
 
       {/* Step Content */}
       <Card className="p-6 border-slate-200">

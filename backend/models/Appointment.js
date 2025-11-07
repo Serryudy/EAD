@@ -76,7 +76,7 @@ const appointmentSchema = new mongoose.Schema({
   // Status and Progress
   status: {
     type: String,
-    enum: ['pending', 'confirmed', 'in-service', 'completed', 'cancelled'],
+    enum: ['pending', 'confirmed', 'in-service', 'completed', 'cancelled', 'in_progress', 'quality_check'],
     default: 'pending'
   },
   serviceProgress: {
@@ -90,6 +90,57 @@ const appointmentSchema = new mongoose.Schema({
     min: 0,
     max: 4
   },
+
+  // Enhanced Progress Tracking for Service Progress Page
+  currentStage: {
+    type: String,
+    enum: ['pending', 'received', 'in-progress', 'quality-check', 'completed'],
+    default: 'pending'
+  },
+  progress: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
+  startedAt: {
+    type: Date
+  },
+  estimatedCompletionTime: {
+    type: Date
+  },
+  stages: [{
+    name: {
+      type: String,
+      required: true
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'in-progress', 'completed'],
+      default: 'pending'
+    },
+    timestamp: {
+      type: Date
+    },
+    icon: {
+      type: String,
+      default: 'Circle'
+    }
+  }],
+  updates: [{
+    time: {
+      type: String,
+      required: true
+    },
+    message: {
+      type: String,
+      required: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
 
   // Multi-vehicle booking support
   appointmentGroupId: {
