@@ -468,8 +468,8 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
                 </Card>
               ) : (
                 vehicles.map((vehicle) => (
-                  <Card key={vehicle.id} className="p-4 hover:shadow-md transition-shadow">
-                    {editingVehicleId === vehicle.id ? (
+                  <Card key={vehicle._id || vehicle.id} className="p-4 hover:shadow-md transition-shadow">
+                    {editingVehicleId === (vehicle._id || vehicle.id) ? (
                       // Edit Mode
                       <div className="space-y-3">
                         <h4 className="font-medium text-slate-700">Edit Vehicle</h4>

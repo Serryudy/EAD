@@ -60,55 +60,53 @@ export function SignupPage() {
       // Signup user first
       await signup(signupData);
       
-      // Wait a moment to ensure sessionStorage is fully written with token
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Wait for sessionStorage to be fully written and context to update
+      await new Promise(resolve => setTimeout(resolve, 500)); // Increased to 500ms
 
       // After successful signup, if vehicle details are provided, create the vehicle
       let vehicleError = '';
       if (vehicleMake && vehicleModel && licensePlate) {
-        console.log('🚗 Attempting to add vehicle after signup...');
+        console.log('🚗 Attempting to add vehicle during signup...');
         const token = sessionStorage.getItem('authToken');
         console.log('📝 Token available:', !!token);
-        console.log('📝 Token value:', token?.substring(0, 50) + '...');
         
-        if (token) {
-          try {
-            const vehicleData = {
-              make: vehicleMake,
-              model: vehicleModel,
-              year: parseInt(vehicleYear) || new Date().getFullYear(),
-              licensePlate,
-            };
-            
-            console.log('🚗 Creating vehicle with data:', vehicleData);
-            const vehicleResponse = await vehicleApi.addVehicle(vehicleData);
-            
-            if (vehicleResponse.success) {
-              console.log('✅ Vehicle created successfully:', vehicleResponse.data);
-            } else {
-              console.warn('⚠️ Vehicle creation response:', vehicleResponse.message);
-              vehicleError = `Note: ${vehicleResponse.message}. You can add vehicle from profile.`;
-            }
-          } catch (error: any) {
-            console.error('❌ Failed to add vehicle:', error);
-            console.error('Error details:', error.message);
-            vehicleError = `Vehicle creation failed: ${error.message}. You can add it from your profile.`;
-          }
-        } else {
-          console.error('❌ No auth token found after signup');
-          vehicleError = 'Authentication issue. Please try adding vehicle from your profile.';
+        if (!token) {
+          console.error('❌ No auth token found! Cannot add vehicle during signup.');
+          console.warn('⚠️ User will need to add vehicle from profile page');
+          setStep('success');
+          setTimeout(() => navigate('/dashboard'), 2000);
+          return;
+        }
+        
+        console.log('📝 Vehicle data:', {
+          make: vehicleMake,
+          model: vehicleModel,
+          year: vehicleYear,
+          licensePlate: licensePlate
+        });
+        
+        try {
+          const vehicleResponse = await vehicleApi.addVehicle({
+            make: vehicleMake,
+            model: vehicleModel,
+            year: parseInt(vehicleYear) || new Date().getFullYear(),
+            licensePlate,
+          });
+          console.log('✅ Vehicle added successfully:', vehicleResponse);
+        } catch (vehicleError: any) {
+          console.error('❌ Failed to add vehicle during signup:', vehicleError);
+          console.error('❌ Vehicle error details:', {
+            message: vehicleError.message,
+            response: vehicleError.response?.data,
+            status: vehicleError.response?.status
+          });
+          // Show warning but continue - user can add vehicle later from profile
+          console.warn('⚠️ Vehicle not added during signup. User can add it later from profile.');
         }
       } else {
         console.log('ℹ️ No vehicle details provided during signup');
       }
 
-      // Show any vehicle errors briefly before success
-      if (vehicleError) {
-        setError(vehicleError);
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
-
-      // Show success screen
       setStep('success');
       setTimeout(() => navigate('/dashboard'), 2000);
     } catch (error: any) {

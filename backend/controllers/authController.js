@@ -454,7 +454,8 @@ class AuthController {
         lastName: lastName ? lastName.trim() : undefined,
         email: email ? email.trim().toLowerCase() : undefined,
         nic: nic ? nic.trim().toUpperCase() : undefined,
-        isVerified: true // Set as verified since they completed signup process
+        isVerified: true, // Auto-verify on signup (phone-based login will require OTP)
+        isActive: true
       });
 
       await customer.save();

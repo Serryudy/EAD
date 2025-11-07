@@ -28,31 +28,15 @@ exports.createVehicle = async (req, res) => {
       notes
     } = req.body;
 
-    // Get owner ID from authenticated user (MongoDB uses _id)
+    // Get owner ID from authenticated user
     const ownerId = req.user?._id || req.body.ownerId;
-    
-    // Get owner name based on role (customers have firstName/lastName, employees have name)
-    let ownerName;
-    if (req.user) {
-      ownerName = req.user.name || `${req.user.firstName} ${req.user.lastName}`.trim();
-    }
-    ownerName = ownerName || req.body.ownerName;
+    const ownerName = req.user ? `${req.user.firstName} ${req.user.lastName}` : req.body.ownerName;
 
-    console.log('🔍 Extracted data:');
-    console.log('  - ownerId:', ownerId);
-    console.log('  - ownerName:', ownerName);
-    console.log('  - licensePlate:', licensePlate);
-    console.log('  - make:', make);
-    console.log('  - model:', model);
-    console.log('  - year:', year);
-
-    if (!ownerId || !ownerName) {
-      console.log('❌ Missing required owner information');
-      return res.status(400).json({
-        success: false,
-        message: 'Owner information is required'
-      });
-    }
+    console.log('🚗 Creating vehicle for user:', {
+      userId: req.user?._id?.toString(),
+      userName: ownerName,
+      licensePlate: licensePlate
+    });
 
     // Check if vehicle already exists
     const existingVehicle = await Vehicle.findOne({ 
@@ -83,6 +67,12 @@ exports.createVehicle = async (req, res) => {
     });
 
     await vehicle.save();
+
+    console.log('✅ Vehicle created successfully:', {
+      _id: vehicle._id.toString(),
+      ownerId: vehicle.ownerId.toString(),
+      licensePlate: vehicle.licensePlate
+    });
 
     res.status(201).json({
       success: true,
@@ -121,17 +111,16 @@ exports.getAllVehicles = async (req, res) => {
     
     // If user is a customer, only show their vehicles
     if (req.user && req.user.role === 'customer') {
-      query.ownerId = req.user._id; // MongoDB uses _id
+      query.ownerId = req.user._id;
+      console.log('🔍 Customer querying vehicles for ownerId:', req.user._id.toString());
     } else if (ownerId) {
       // Employees can filter by ownerId
       query.ownerId = ownerId;
     }
     
-    // Handle isActive filter - default to true (show active vehicles)
+    // Only filter by isActive if explicitly provided
     if (isActive !== undefined) {
       query.isActive = isActive === 'true' || isActive === true;
-    } else {
-      query.isActive = true; // Default: only show active vehicles
     }
     
     if (search) {
@@ -142,7 +131,7 @@ exports.getAllVehicles = async (req, res) => {
       ];
     }
 
-    console.log('🔍 Query:', JSON.stringify(query, null, 2));
+    console.log('🔍 Vehicle query:', JSON.stringify(query));
 
     const skip = (page - 1) * limit;
 
@@ -158,14 +147,12 @@ exports.getAllVehicles = async (req, res) => {
 
     const total = await Vehicle.countDocuments(query);
 
-    console.log(`✅ Found ${vehicles.length} vehicles (total: ${total})`);
+    console.log('✅ Found vehicles:', total, '| Returned:', vehicles.length);
     if (vehicles.length > 0) {
-      console.log('📋 First vehicle:', {
-        _id: vehicles[0]._id,
-        ownerId: vehicles[0].ownerId,
+      console.log('   First vehicle:', {
         licensePlate: vehicles[0].licensePlate,
-        make: vehicles[0].make,
-        model: vehicles[0].model
+        ownerId: vehicles[0].ownerId?.toString(),
+        make: vehicles[0].make
       });
     }
 
