@@ -19,6 +19,8 @@ class NotificationService {
       socket.on('authenticate', async (data) => {
         try {
           const { userId, role } = data;
+          console.log('🔐 Socket authenticate request:', { userId, role, socketId: socket.id });
+          
           if (userId) {
             socket.userId = userId;
             socket.userRole = role;
@@ -34,13 +36,17 @@ class NotificationService {
             socket.join(`role_${role}`);
             
             console.log(`✅ User ${userId} (${role}) authenticated on socket ${socket.id}`);
+            console.log(`✅ Joined rooms: user_${userId}, role_${role}`);
             
             // Send unread count
             const unreadCount = await Notification.getUnreadCount(userId);
+            console.log(`📊 Sending unread count to ${userId}: ${unreadCount}`);
             socket.emit('unread_count', { count: unreadCount });
+          } else {
+            console.warn('⚠️ Socket authentication failed - no userId provided');
           }
         } catch (error) {
-          console.error('Socket authentication error:', error);
+          console.error('❌ Socket authentication error:', error);
         }
       });
 
@@ -81,35 +87,51 @@ class NotificationService {
   // Send notification to specific user
   async sendToUser(userId, notificationData) {
     try {
+      console.log('📤 sendToUser called for:', userId);
+      console.log('📤 Notification data:', notificationData.type, notificationData.title);
+      
       // Get user and check preferences
       const user = await User.findById(userId);
       if (!user) {
-        console.warn(`User ${userId} not found`);
+        console.warn(`❌ User ${userId} not found`);
         return null;
       }
+      console.log('✅ User found:', user.email, user.role);
 
       // Check if user wants this type of notification
       const prefs = user.notificationPreferences;
+      console.log('🔔 User preferences:', JSON.stringify(prefs, null, 2));
+      
       if (prefs && prefs.types && prefs.types[notificationData.type] === false) {
-        console.log(`User ${userId} has disabled ${notificationData.type} notifications`);
+        console.log(`❌ User ${userId} has disabled ${notificationData.type} notifications`);
         return null;
       }
 
       // Create notification in database (in-app notification)
       let notification = null;
       if (!prefs || prefs.push !== false) {
+        console.log('💾 Creating notification in database...');
         notification = await Notification.createNotification({
           recipient: userId,
           ...notificationData
         });
+        console.log('✅ Notification created in DB:', notification._id);
 
         // Send via Socket.io if user is connected
         if (this.io) {
-          this.io.to(`user_${userId}`).emit('new_notification', {
+          const room = `user_${userId}`;
+          console.log('📡 Emitting to socket room:', room);
+          const unreadCount = await Notification.getUnreadCount(userId);
+          this.io.to(room).emit('new_notification', {
             notification,
-            unreadCount: await Notification.getUnreadCount(userId)
+            unreadCount
           });
+          console.log('✅ Socket event emitted with unread count:', unreadCount);
+        } else {
+          console.warn('❌ Socket.io not initialized!');
         }
+      } else {
+        console.log('❌ User has disabled push notifications');
       }
 
       // Send email notification if enabled and user has email
@@ -119,7 +141,7 @@ class NotificationService {
 
       return notification;
     } catch (error) {
-      console.error('Send notification error:', error);
+      console.error('❌ Send notification error:', error);
       throw error;
     }
   }
@@ -215,7 +237,14 @@ class NotificationService {
 
   // Appointment-related notifications
   async notifyAppointmentCreated(appointment, customerId) {
-    return await this.sendToUser(customerId, {
+    console.log('📝 Creating notification for customer:', customerId);
+    console.log('📝 Appointment details:', {
+      id: appointment._id,
+      number: appointment.appointmentNumber,
+      date: appointment.scheduledDate
+    });
+    
+    const result = await this.sendToUser(customerId, {
       recipientRole: 'customer',
       type: 'appointment_created',
       title: 'Appointment Created',
@@ -228,6 +257,9 @@ class NotificationService {
       actionUrl: `/appointments/${appointment._id}`,
       appointment // Pass for email
     });
+    
+    console.log('✅ Notification result:', result ? result._id : 'null');
+    return result;
   }
 
   async notifyAppointmentConfirmed(appointment, customerId) {

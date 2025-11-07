@@ -237,12 +237,22 @@ exports.createAppointment = async (req, res) => {
     await appointment.populate('vehicleId');
     await appointment.populate('assignedEmployee', 'name employeeId');
 
+    // Get customer ID for notifications
+    const customerId = appointment.customerId._id || appointment.customerId;
+
     // Send notification to customer
     try {
+      console.log('🔍 DEBUG: About to create notification for customer:', customerId);
+      console.log('🔍 DEBUG: Appointment details:', {
+        id: appointment._id,
+        number: appointment.appointmentNumber,
+        date: appointment.scheduledDate
+      });
       await notificationService.notifyAppointmentCreated(appointment, customerId);
+      console.log('✅ DEBUG: Notification created successfully');
       console.log('✉️ Appointment notification sent to customer');
     } catch (notifError) {
-      console.error('Failed to send appointment notification:', notifError);
+      console.error('❌ Failed to send appointment notification:', notifError);
       // Don't fail the request if notification fails
     }
 

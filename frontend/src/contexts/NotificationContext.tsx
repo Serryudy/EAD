@@ -44,7 +44,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Initialize Socket.io connection
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.log('⚠️ No user, skipping socket connection');
+      return;
+    }
+
+    console.log('🔌 Initializing socket for user:', user.id, user.role);
 
     const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
       withCredentials: true,
@@ -53,6 +58,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     newSocket.on('connect', () => {
       console.log('✅ Socket connected:', newSocket.id);
+      console.log('🔐 Authenticating user:', user.id, user.role);
       // Authenticate socket
       newSocket.emit('authenticate', {
         userId: user.id,
@@ -61,7 +67,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     });
 
     newSocket.on('new_notification', (data: { notification: Notification; unreadCount: number }) => {
-      console.log('📬 New notification:', data.notification);
+      console.log('📬 NEW NOTIFICATION RECEIVED:', data.notification);
+      console.log('📊 Unread count:', data.unreadCount);
       setNotifications((prev) => [data.notification, ...prev]);
       setUnreadCount(data.unreadCount);
 
@@ -76,6 +83,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     });
 
     newSocket.on('unread_count', (data: { count: number }) => {
+      console.log('🔢 Unread count update:', data.count);
       setUnreadCount(data.count);
     });
 
@@ -84,12 +92,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     });
 
     newSocket.on('connect_error', (error: Error) => {
-      console.error('Socket connection error:', error);
+      console.error('❌ Socket connection error:', error);
     });
 
     setSocket(newSocket);
 
     return () => {
+      console.log('🔌 Closing socket connection');
       newSocket.close();
     };
   }, [user]);
@@ -103,24 +112,35 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Fetch notifications
   const fetchNotifications = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('⚠️ Cannot fetch notifications - no user');
+      return;
+    }
     
     try {
+      console.log('📥 Fetching notifications for user:', user.id);
       setLoading(true);
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      console.log('📥 API URL:', apiUrl);
+      
       const response = await fetch(`${apiUrl}/api/notifications?limit=50`, {
         credentials: 'include',
       });
 
+      console.log('📥 Response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('📥 Received notifications:', data.data.notifications.length);
+        console.log('📥 Unread count:', data.data.unreadCount);
         setNotifications(data.data.notifications);
         setUnreadCount(data.data.unreadCount);
       } else {
-        console.error('Failed to fetch notifications:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('❌ Failed to fetch notifications:', response.status, response.statusText, errorText);
       }
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      console.error('❌ Failed to fetch notifications:', error);
     } finally {
       setLoading(false);
     }

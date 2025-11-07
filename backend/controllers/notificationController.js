@@ -4,6 +4,7 @@ class NotificationController {
   // Get all notifications for logged-in user
   async getNotifications(req, res) {
     try {
+      console.log('📋 getNotifications called for user:', req.user._id, req.user.role);
       const { page = 1, limit = 20, unreadOnly = false } = req.query;
       const userId = req.user._id;
 
@@ -12,6 +13,8 @@ class NotificationController {
         query.isRead = false;
       }
 
+      console.log('📋 Query:', JSON.stringify(query));
+      
       const notifications = await Notification.find(query)
         .sort({ createdAt: -1 })
         .limit(parseInt(limit))
@@ -21,6 +24,8 @@ class NotificationController {
 
       const total = await Notification.countDocuments(query);
       const unreadCount = await Notification.getUnreadCount(userId);
+
+      console.log(`📋 Found ${notifications.length} notifications (${unreadCount} unread) for user ${userId}`);
 
       res.json({
         success: true,
@@ -36,7 +41,7 @@ class NotificationController {
         }
       });
     } catch (error) {
-      console.error('Get notifications error:', error);
+      console.error('❌ Get notifications error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch notifications',
