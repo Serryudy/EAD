@@ -35,43 +35,133 @@ export default function ConfirmationStep({
     <div className="max-w-3xl mx-auto">
       {/* Success Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-green-600 mb-4 shadow-lg">
-          <CheckCircle2 className="w-12 h-12 text-white" />
+        <div 
+          style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)'
+          }}
+        >
+          <CheckCircle2 style={{ width: '48px', height: '48px', color: 'white' }} />
         </div>
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">
+        <h2 style={{
+          fontSize: '2rem',
+          fontWeight: '700',
+          color: '#0A2C5E',
+          marginBottom: '0.5rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Booking Confirmed!
         </h2>
-        <p className="text-slate-600 text-lg">
+        <p style={{
+          color: '#64748b',
+          fontSize: '1.125rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
           Your appointment has been successfully scheduled
         </p>
       </div>
 
       {/* Reference Number */}
-      <Card className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 mb-6">
-        <div className="text-center">
-          <p className="text-sm text-blue-700 mb-2 font-medium">Reference Number</p>
-          <p className="text-3xl font-bold text-blue-900 tracking-wider">
+      <div style={{
+        padding: '1.5rem',
+        background: 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)',
+        borderRadius: '12px',
+        marginBottom: '1.5rem',
+        boxShadow: '0 4px 12px rgba(10, 44, 94, 0.15)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{
+            fontSize: '0.875rem',
+            color: '#93c5fd',
+            marginBottom: '0.5rem',
+            fontWeight: '500',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
+            Reference Number
+          </p>
+          <p style={{
+            fontSize: '2rem',
+            fontWeight: '700',
+            color: 'white',
+            letterSpacing: '0.1em',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
             {referenceNumber}
           </p>
-          <p className="text-xs text-blue-600 mt-2">
+          <p style={{
+            fontSize: '0.75rem',
+            color: '#bfdbfe',
+            marginTop: '0.5rem',
+            fontFamily: 'Poppins, sans-serif'
+          }}>
             Please save this reference number for your records
           </p>
         </div>
-      </Card>
+      </div>
 
       {/* Appointment Details */}
-      <Card className="p-6 mb-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Appointment Details</h3>
+      <div style={{
+        background: '#042A5C',
+        padding: '1.5rem',
+        borderRadius: '12px',
+        border: '1px solid #2F8BFF',
+        marginBottom: '1.5rem'
+      }}>
+        <h3 style={{
+          fontSize: '1.25rem',
+          fontWeight: '600',
+          color: 'white',
+          marginBottom: '1rem',
+          fontFamily: 'Poppins, sans-serif'
+        }}>
+          Appointment Details
+        </h3>
         
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Date & Time */}
-          <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-              <Calendar className="w-5 h-5 text-white" />
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '1rem',
+            padding: '1rem',
+            background: 'rgba(47, 139, 255, 0.1)',
+            borderRadius: '8px',
+            border: '1px solid rgba(47, 139, 255, 0.2)'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Calendar color="white" size={20} />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-slate-600 mb-1">Date & Time</p>
-              <p className="font-semibold text-slate-900">
+            <div style={{ flex: 1 }}>
+              <p style={{
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: '#93c5fd',
+                marginBottom: '0.25rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
+                Date & Time
+              </p>
+              <p style={{
+                fontWeight: '600',
+                color: 'white',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
                 {bookingData.date?.toLocaleDateString('en-US', {
                   weekday: 'long',
                   month: 'long',
@@ -80,9 +170,14 @@ export default function ConfirmationStep({
                 })}
               </p>
               {bookingData.timeSlot && (
-                <div className="flex items-center gap-2 mt-1">
-                  <Clock className="w-4 h-4 text-purple-600" />
-                  <p className="text-sm font-medium text-slate-700">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <Clock color="#a855f7" size={16} />
+                  <p style={{
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: '#e0e7ff',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
                     {bookingData.timeSlot.displayTime} - {bookingData.timeSlot.displayEndTime}
                   </p>
                 </div>
@@ -91,17 +186,55 @@ export default function ConfirmationStep({
           </div>
 
           {/* Services */}
-          <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-              <Wrench className="w-5 h-5 text-white" />
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '1rem',
+            padding: '1rem',
+            background: 'rgba(47, 139, 255, 0.1)',
+            borderRadius: '8px',
+            border: '1px solid rgba(47, 139, 255, 0.2)'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Wrench color="white" size={20} />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-slate-600 mb-2">Services ({bookingData.services.length})</p>
-              <div className="space-y-1">
+            <div style={{ flex: 1 }}>
+              <p style={{
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: '#93c5fd',
+                marginBottom: '0.5rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
+                Services ({bookingData.services.length})
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 {bookingData.services.map((service) => (
-                  <div key={service._id} className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-slate-900">• {service.name}</p>
-                    <p className="text-sm text-slate-600">${service.basePrice.toFixed(2)}</p>
+                  <div key={service._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <p style={{
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      color: 'white',
+                      fontFamily: 'Poppins, sans-serif'
+                    }}>
+                      • {service.name}
+                    </p>
+                    <p style={{
+                      fontSize: '0.875rem',
+                      color: '#93c5fd',
+                      fontFamily: 'Poppins, sans-serif'
+                    }}>
+                      ${service.basePrice.toFixed(2)}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -109,15 +242,45 @@ export default function ConfirmationStep({
           </div>
 
           {/* Vehicles */}
-          <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center flex-shrink-0">
-              <Car className="w-5 h-5 text-white" />
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '1rem',
+            padding: '1rem',
+            background: 'rgba(47, 139, 255, 0.1)',
+            borderRadius: '8px',
+            border: '1px solid rgba(47, 139, 255, 0.2)'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Car color="white" size={20} />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-slate-600 mb-2">Vehicles ({bookingData.vehicles.length})</p>
-              <div className="space-y-1">
+            <div style={{ flex: 1 }}>
+              <p style={{
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: '#93c5fd',
+                marginBottom: '0.5rem',
+                fontFamily: 'Poppins, sans-serif'
+              }}>
+                Vehicles ({bookingData.vehicles.length})
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 {bookingData.vehicles.map((vehicle) => (
-                  <p key={vehicle._id} className="text-sm font-medium text-slate-900">
+                  <p key={vehicle._id} style={{
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    color: 'white',
+                    fontFamily: 'Poppins, sans-serif'
+                  }}>
                     • {vehicle.year} {vehicle.make} {vehicle.model} ({vehicle.licensePlate})
                   </p>
                 ))}
@@ -127,26 +290,77 @@ export default function ConfirmationStep({
 
           {/* Special Instructions */}
           {bookingData.specialInstructions && (
-            <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center flex-shrink-0">
-                <FileText className="w-5 h-5 text-white" />
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '1rem',
+              padding: '1rem',
+              background: 'rgba(47, 139, 255, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(47, 139, 255, 0.2)'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <FileText color="white" size={20} />
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-600 mb-1">Special Instructions</p>
-                <p className="text-sm text-slate-700">{bookingData.specialInstructions}</p>
+              <div style={{ flex: 1 }}>
+                <p style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: '#93c5fd',
+                  marginBottom: '0.25rem',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  Special Instructions
+                </p>
+                <p style={{
+                  fontSize: '0.875rem',
+                  color: '#e0e7ff',
+                  fontFamily: 'Poppins, sans-serif'
+                }}>
+                  {bookingData.specialInstructions}
+                </p>
               </div>
             </div>
           )}
         </div>
-      </Card>
+      </div>
 
       {/* Status */}
-      <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 border-green-200 mb-6">
-        <div className="flex items-start gap-3">
-          <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" />
+      <div style={{
+        padding: '1.5rem',
+        background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+        borderRadius: '12px',
+        border: '1px solid #6ee7b7',
+        marginBottom: '1.5rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+          <CheckCircle2 style={{ width: '24px', height: '24px', color: '#059669', flexShrink: 0 }} />
           <div>
-            <h4 className="font-semibold text-green-900 mb-1">What's Next?</h4>
-            <ul className="text-sm text-green-800 space-y-1">
+            <h4 style={{
+              fontWeight: '600',
+              color: '#065f46',
+              marginBottom: '0.5rem',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
+              What's Next?
+            </h4>
+            <ul style={{
+              fontSize: '0.875rem',
+              color: '#047857',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              fontFamily: 'Poppins, sans-serif'
+            }}>
               <li>✓ You will receive a confirmation email shortly</li>
               <li>✓ A service team member will be assigned to your appointment</li>
               <li>✓ You can track your appointment status in your dashboard</li>
@@ -154,29 +368,55 @@ export default function ConfirmationStep({
             </ul>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '1rem'
+      }}>
         <Button
           onClick={onComplete}
           variant="outline"
-          className="py-6 text-lg font-semibold border-2"
+          style={{
+            padding: '1.5rem',
+            fontSize: '1.125rem',
+            fontWeight: '600',
+            border: '2px solid #2F8BFF',
+            color: '#0A2C5E',
+            background: 'white',
+            fontFamily: 'Poppins, sans-serif'
+          }}
         >
-          <Home className="w-5 h-5 mr-2" />
+          <Home style={{ width: '20px', height: '20px', marginRight: '0.5rem' }} />
           Go to Dashboard
         </Button>
         <Button
           onClick={onBookAnother}
-          className="py-6 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+          style={{
+            padding: '1.5rem',
+            fontSize: '1.125rem',
+            fontWeight: '600',
+            background: 'linear-gradient(135deg, #0A2C5E 0%, #1B4C8C 100%)',
+            color: 'white',
+            border: 'none',
+            fontFamily: 'Poppins, sans-serif'
+          }}
         >
-          <CalendarPlus className="w-5 h-5 mr-2" />
+          <CalendarPlus style={{ width: '20px', height: '20px', marginRight: '0.5rem' }} />
           Book Another Appointment
         </Button>
       </div>
 
       {/* Footer Note */}
-      <p className="text-center text-sm text-slate-500 mt-6">
+      <p style={{
+        textAlign: 'center',
+        fontSize: '0.875rem',
+        color: '#64748b',
+        marginTop: '1.5rem',
+        fontFamily: 'Poppins, sans-serif'
+      }}>
         Need to make changes? Contact us at (555) 123-4567 or visit your dashboard to manage your appointments.
       </p>
     </div>

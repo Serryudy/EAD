@@ -59,27 +59,50 @@ export function SignupPage() {
 
       await signup(signupData);
       
-      // Wait a moment to ensure sessionStorage is fully written
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for sessionStorage to be fully written and context to update
+      await new Promise(resolve => setTimeout(resolve, 500)); // Increased to 500ms
 
       // If signup successful and vehicle details provided, add vehicle
       if (vehicleMake && vehicleModel && licensePlate) {
-        console.log('🚗 Attempting to add vehicle...');
+        console.log('🚗 Attempting to add vehicle during signup...');
         const token = sessionStorage.getItem('authToken');
-        console.log('Token available:', !!token);
+        console.log('📝 Token available:', !!token);
+        
+        if (!token) {
+          console.error('❌ No auth token found! Cannot add vehicle during signup.');
+          console.warn('⚠️ User will need to add vehicle from profile page');
+          setStep('success');
+          setTimeout(() => navigate('/dashboard'), 2000);
+          return;
+        }
+        
+        console.log('📝 Vehicle data:', {
+          make: vehicleMake,
+          model: vehicleModel,
+          year: vehicleYear,
+          licensePlate: licensePlate
+        });
         
         try {
-          await vehicleApi.addVehicle({
+          const vehicleResponse = await vehicleApi.addVehicle({
             make: vehicleMake,
             model: vehicleModel,
             year: parseInt(vehicleYear) || new Date().getFullYear(),
             licensePlate,
           });
-          console.log('✅ Vehicle added successfully');
-        } catch (vehicleError) {
-          console.error('❌ Failed to add vehicle:', vehicleError);
-          // Don't show error, continue with success
+          console.log('✅ Vehicle added successfully:', vehicleResponse);
+        } catch (vehicleError: any) {
+          console.error('❌ Failed to add vehicle during signup:', vehicleError);
+          console.error('❌ Vehicle error details:', {
+            message: vehicleError.message,
+            response: vehicleError.response?.data,
+            status: vehicleError.response?.status
+          });
+          // Show warning but continue - user can add vehicle later from profile
+          console.warn('⚠️ Vehicle not added during signup. User can add it later from profile.');
         }
+      } else {
+        console.log('ℹ️ No vehicle details provided during signup');
       }
 
       setStep('success');

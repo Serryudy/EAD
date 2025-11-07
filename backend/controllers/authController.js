@@ -453,7 +453,9 @@ class AuthController {
         firstName: firstName.trim(),
         lastName: lastName ? lastName.trim() : undefined,
         email: email ? email.trim().toLowerCase() : undefined,
-        nic: nic ? nic.trim().toUpperCase() : undefined
+        nic: nic ? nic.trim().toUpperCase() : undefined,
+        isVerified: true, // Auto-verify on signup (phone-based login will require OTP)
+        isActive: true
       });
 
       await customer.save();
