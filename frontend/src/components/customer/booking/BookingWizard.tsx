@@ -283,25 +283,25 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
     <div className="max-w-5xl mx-auto p-4 md:p-6">
       {/* Progress Header */}
       <div style={{
-        background: 'white',
-        border: '2px solid #e2e8f0',
+        background: '#042A5C',
+        border: '2px solid #2F8BFF',
         borderRadius: '16px',
         padding: '1.5rem',
         marginBottom: '1.5rem',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 4px 16px rgba(47, 139, 255, 0.2)'
       }}>
         <div style={{ marginBottom: '1.5rem' }}>
           <h2 style={{
             fontSize: '1.875rem',
             fontWeight: '700',
-            color: '#0A2C5E',
+            color: 'white',
             marginBottom: '0.5rem',
             fontFamily: 'Poppins, sans-serif'
           }}>
             Book an Appointment
           </h2>
           <p style={{
-            color: '#64748b',
+            color: '#93c5fd',
             fontSize: '1rem',
             fontFamily: 'Poppins, sans-serif'
           }}>
@@ -314,7 +314,7 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
           <div style={{
             width: '100%',
             height: '8px',
-            background: '#e2e8f0',
+            background: 'rgba(47, 139, 255, 0.2)',
             borderRadius: '999px',
             overflow: 'hidden'
           }}>
@@ -327,7 +327,7 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
           </div>
           <div style={{
             fontSize: '0.875rem',
-            color: '#64748b',
+            color: '#93c5fd',
             marginTop: '0.5rem',
             fontFamily: 'Poppins, sans-serif'
           }}>
@@ -365,24 +365,24 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
                       ? '#10b981'
                       : index === currentStepIndex
                       ? '#2F8BFF'
-                      : '#cbd5e1',
+                      : 'rgba(147, 197, 253, 0.3)',
                     background: index < currentStepIndex
                       ? '#10b981'
                       : index === currentStepIndex
                       ? '#2F8BFF'
-                      : 'white',
+                      : 'rgba(255, 255, 255, 0.05)',
                     color: 'white',
                     transition: 'all 0.3s ease',
                     fontWeight: '700',
                     fontSize: '1.125rem',
                     fontFamily: 'Poppins, sans-serif',
-                    boxShadow: index <= currentStepIndex ? '0 4px 12px rgba(47, 139, 255, 0.3)' : 'none'
+                    boxShadow: index <= currentStepIndex ? '0 4px 12px rgba(47, 139, 255, 0.4)' : 'none'
                   }}
                 >
                   {index < currentStepIndex ? (
                     <CheckCircle2 style={{ width: '24px', height: '24px' }} />
                   ) : (
-                    <span style={{ color: index === currentStepIndex ? 'white' : '#94a3b8' }}>
+                    <span style={{ color: index === currentStepIndex ? 'white' : '#93c5fd' }}>
                       {step.number}
                     </span>
                   )}
@@ -392,7 +392,7 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
                     fontSize: '0.75rem',
                     marginTop: '0.5rem',
                     display: window.innerWidth >= 768 ? 'block' : 'none',
-                    color: index <= currentStepIndex ? '#0A2C5E' : '#94a3b8',
+                    color: index <= currentStepIndex ? 'white' : '#93c5fd',
                     fontWeight: index <= currentStepIndex ? '600' : '400',
                     fontFamily: 'Poppins, sans-serif'
                   }}
@@ -406,7 +406,7 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
                     flex: 1,
                     height: '3px',
                     margin: '0 0.5rem',
-                    background: index < currentStepIndex ? '#10b981' : '#e2e8f0',
+                    background: index < currentStepIndex ? '#10b981' : 'rgba(47, 139, 255, 0.2)',
                     transition: 'background 0.3s ease',
                     borderRadius: '999px'
                   }}
