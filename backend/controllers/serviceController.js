@@ -71,7 +71,7 @@ exports.getAllServices = async (req, res) => {
   try {
     const {
       category,
-      isActive = true,
+      isActive,
       isPopular,
       search,
       page = 1,
@@ -79,6 +79,8 @@ exports.getAllServices = async (req, res) => {
       sortBy = 'name',
       sortOrder = 'asc'
     } = req.query;
+
+    console.log('📋 getAllServices called with query params:', req.query);
 
     const query = {};
 
@@ -94,15 +96,23 @@ exports.getAllServices = async (req, res) => {
       ];
     }
 
+    console.log('🔍 Query object:', JSON.stringify(query));
+
     const skip = (page - 1) * limit;
     const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
+
+    console.log('⏭️ Skip:', skip, 'Limit:', limit, 'Sort:', sort);
 
     const services = await Service.find(query)
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit));
 
+    console.log('📊 Services found:', services.length);
+
     const total = await Service.countDocuments(query);
+
+    console.log('📈 Total count:', total);
 
     res.json({
       success: true,

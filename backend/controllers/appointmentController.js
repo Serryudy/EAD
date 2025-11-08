@@ -232,9 +232,10 @@ exports.createAppointment = async (req, res) => {
     await vehicle.save();
 
     // Populate customer and vehicle data for response
-    await appointment.populate('customerId', 'name email mobile');
+    await appointment.populate('customerId', 'firstName lastName email phone phoneNumber');
     await appointment.populate('vehicleId');
-    await appointment.populate('assignedEmployee', 'name employeeId');
+    await appointment.populate('assignedEmployee', 'firstName lastName employeeId');
+    await appointment.populate('serviceIds', 'name price estimatedTime description');
 
     // Prepare success message
     let message = 'Appointment created successfully';
@@ -309,9 +310,10 @@ exports.getAllAppointments = async (req, res) => {
     const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
     const appointments = await Appointment.find(query)
-      .populate('customerId', 'name email phone mobile')
-      .populate('assignedEmployee', 'name email employeeId')
+      .populate('customerId', 'firstName lastName email phone phoneNumber')
+      .populate('assignedEmployee', 'firstName lastName email employeeId')
       .populate('vehicleId', 'vehicleNumber type make model year')
+      .populate('serviceIds', 'name price estimatedTime description')
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit));
@@ -340,14 +342,16 @@ exports.getAllAppointments = async (req, res) => {
 
 // Get appointment by ID
 exports.getAppointmentById = async (req, res) => {
+  console.log('🔍 getAppointmentById called with params:', req.params);
   try {
     // Use authenticated user from req.user
     const user = req.user;
     
     const appointment = await Appointment.findById(req.params.id)
-      .populate('customerId', 'name email phone mobile')
-      .populate('assignedEmployee', 'name email employeeId')
-      .populate('vehicleId', 'vehicleNumber type make model year');
+      .populate('customerId', 'firstName lastName email phone phoneNumber')
+      .populate('assignedEmployee', 'firstName lastName email employeeId')
+      .populate('vehicleId', 'vehicleNumber type make model year')
+      .populate('serviceIds', 'name price estimatedTime description');
 
     if (!appointment) {
       return res.status(404).json({
@@ -654,6 +658,15 @@ exports.getEmployeeAppointments = async (req, res) => {
     const { employeeId } = req.params;
     const { status, date } = req.query;
 
+    // Validate employeeId is a valid MongoDB ObjectId
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid employee ID format'
+      });
+    }
+
     const query = { assignedEmployee: employeeId };
     
     if (status) query.status = status;
@@ -665,10 +678,16 @@ exports.getEmployeeAppointments = async (req, res) => {
       query.preferredDate = { $gte: startOfDay, $lte: endOfDay };
     }
 
+    console.log('🔍 Fetching appointments for employee:', employeeId);
+    console.log('Query:', JSON.stringify(query));
+
     const appointments = await Appointment.find(query)
-      .populate('customerId', 'name email phone')
+      .populate('customerId', 'firstName lastName email phone phoneNumber')
       .populate('vehicleId', 'vehicleNumber type make model year')
+      .populate('serviceIds', 'name price estimatedTime description')
       .sort({ preferredDate: 1 });
+
+    console.log('Found appointments:', appointments.length);
 
     res.json({
       success: true,
@@ -772,6 +791,7 @@ const Service = require('../models/Service');
  * GET /api/appointments/available-slots
  */
 exports.getAvailableSlots = async (req, res) => {
+  console.log('🎯 getAvailableSlots called with query:', req.query);
   try {
     const { date, serviceIds, vehicleCount = 1 } = req.query;
     

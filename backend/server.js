@@ -14,6 +14,7 @@ const workLogRoutes = require('./routes/workLogs');
 const dashboardRoutes = require('./routes/dashboard');
 const serviceRecordRoutes = require('./routes/serviceRecords');
 const profileRoutes = require('./routes/profile');
+const userRoutes = require('./routes/users');
 
 
 const app = express();
@@ -46,6 +47,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/services', serviceRoutes);
@@ -89,7 +91,12 @@ app.use((req, res) => {
       'POST /api/auth/customer/signup',
       'POST /api/auth/customer/send-otp',
       'POST /api/auth/customer/verify-otp',
+      'POST /api/auth/register/employee',
       'GET /api/auth/profile',
+      'GET /api/users',
+      'GET /api/users/:id',
+      'PUT /api/users/:id',
+      'DELETE /api/users/:id',
       'POST /api/appointments',
       'GET /api/appointments',
       'GET /api/vehicles',

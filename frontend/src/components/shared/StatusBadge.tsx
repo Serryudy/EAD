@@ -1,14 +1,22 @@
 import { Badge } from '../ui/badge';
 
 interface StatusBadgeProps {
-  status: 'pending' | 'in-progress' | 'quality-check' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'in-progress' | 'quality-check' | 'completed' | 'cancelled' | 'received' | string;
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const statusConfig = {
+  const statusConfig: Record<string, { label: string; className: string }> = {
+    'received': {
+      label: 'Received',
+      className: 'bg-slate-100 text-slate-700 border-slate-200'
+    },
     'pending': {
       label: 'Pending',
       className: 'bg-amber-100 text-amber-700 border-amber-200'
+    },
+    'confirmed': {
+      label: 'Confirmed',
+      className: 'bg-cyan-100 text-cyan-700 border-cyan-200'
     },
     'in-progress': {
       label: 'In Progress',
@@ -28,7 +36,10 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     }
   };
 
-  const config = statusConfig[status];
+  const config = statusConfig[status] || {
+    label: status || 'Unknown',
+    className: 'bg-gray-100 text-gray-700 border-gray-200'
+  };
 
   return (
     <Badge variant="outline" className={config.className}>
