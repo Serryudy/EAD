@@ -1,6 +1,7 @@
 const Appointment = require('../models/Appointment');
 const Vehicle = require('../models/Vehicle');
 const User = require('../models/User');
+const notificationService = require('../services/notificationService');
 
 // Helper function to parse time window and calculate time range
 const parseTimeWindow = (timeWindow, preferredDate) => {
@@ -237,6 +238,43 @@ exports.createAppointment = async (req, res) => {
     await appointment.populate('assignedEmployee', 'firstName lastName employeeId');
     await appointment.populate('serviceIds', 'name price estimatedTime description');
 
+    // Get customer ID for notifications
+    const customerId = appointment.customerId._id || appointment.customerId;
+
+    // Send notification to customer
+    try {
+      console.log('🔍 DEBUG: About to create notification for customer:', customerId);
+      console.log('🔍 DEBUG: Appointment details:', {
+        id: appointment._id,
+        number: appointment.appointmentNumber,
+        date: appointment.scheduledDate
+      });
+      await notificationService.notifyAppointmentCreated(appointment, customerId);
+      console.log('✅ DEBUG: Notification created successfully');
+      console.log('✉️ Appointment notification sent to customer');
+    } catch (notifError) {
+      console.error('❌ Failed to send appointment notification:', notifError);
+      // Don't fail the request if notification fails
+    }
+
+    // Send notification to admin about new appointment
+    try {
+      await notificationService.notifyAdminNewAppointment(appointment);
+      console.log('✉️ Admin notification sent about new appointment');
+    } catch (notifError) {
+      console.error('Failed to send admin notification:', notifError);
+    }
+
+    // If employee was auto-assigned, notify them
+    if (appointment.assignedEmployee) {
+      try {
+        await notificationService.notifyEmployeeAssigned(appointment, appointment.assignedEmployee._id);
+        console.log('✉️ Employee notification sent about assignment');
+      } catch (notifError) {
+        console.error('Failed to send employee notification:', notifError);
+      }
+    }
+
     // Prepare success message
     let message = 'Appointment created successfully';
     if (appointment.assignedEmployee) {
@@ -437,7 +475,8 @@ exports.updateAppointmentStatus = async (req, res) => {
     const { id } = req.params;
     const { status, cancellationReason } = req.body;
 
-    const appointment = await Appointment.findById(id);
+    const appointment = await Appointment.findById(id)
+      .populate('customerId', 'name email mobile');
 
     if (!appointment) {
       return res.status(404).json({
@@ -446,6 +485,7 @@ exports.updateAppointmentStatus = async (req, res) => {
       });
     }
 
+    const oldStatus = appointment.status;
     appointment.status = status;
     
     if (status === 'cancelled' && cancellationReason) {
@@ -453,6 +493,19 @@ exports.updateAppointmentStatus = async (req, res) => {
     }
 
     await appointment.save();
+
+    // Send notification based on status change
+    try {
+      if (status === 'confirmed' && oldStatus !== 'confirmed') {
+        await notificationService.notifyAppointmentConfirmed(appointment, appointment.customerId._id);
+        console.log('✉️ Appointment confirmation notification sent');
+      } else if (status === 'cancelled' && oldStatus !== 'cancelled') {
+        await notificationService.notifyAppointmentCancelled(appointment, appointment.customerId._id, 'customer');
+        console.log('✉️ Appointment cancellation notification sent');
+      }
+    } catch (notifError) {
+      console.error('Failed to send status notification:', notifError);
+    }
 
     res.json({
       success: true,
@@ -535,13 +588,29 @@ exports.assignEmployee = async (req, res) => {
         status: 'confirmed'
       },
       { new: true }
-    );
+    ).populate('customerId', 'name email mobile');
 
     if (!appointment) {
       return res.status(404).json({
         success: false,
         message: 'Appointment not found'
       });
+    }
+
+    // Notify employee about assignment
+    try {
+      await notificationService.notifyEmployeeAssigned(appointment, employeeId);
+      console.log('✉️ Employee notified about appointment assignment');
+    } catch (notifError) {
+      console.error('Failed to notify employee:', notifError);
+    }
+
+    // Notify customer about confirmation
+    try {
+      await notificationService.notifyAppointmentConfirmed(appointment, appointment.customerId._id);
+      console.log('✉️ Customer notified about appointment confirmation');
+    } catch (notifError) {
+      console.error('Failed to notify customer:', notifError);
     }
 
     res.json({
@@ -565,7 +634,8 @@ exports.cancelAppointment = async (req, res) => {
     const { id } = req.params;
     const { cancellationReason } = req.body;
 
-    const appointment = await Appointment.findById(id);
+    const appointment = await Appointment.findById(id)
+      .populate('customerId', 'name email mobile');
 
     if (!appointment) {
       return res.status(404).json({
@@ -584,6 +654,14 @@ exports.cancelAppointment = async (req, res) => {
     appointment.status = 'cancelled';
     appointment.cancellationReason = cancellationReason || 'Not specified';
     await appointment.save();
+
+    // Send cancellation notification
+    try {
+      await notificationService.notifyAppointmentCancelled(appointment, appointment.customerId._id, 'customer');
+      console.log('✉️ Appointment cancellation notification sent');
+    } catch (notifError) {
+      console.error('Failed to send cancellation notification:', notifError);
+    }
 
     res.json({
       success: true,

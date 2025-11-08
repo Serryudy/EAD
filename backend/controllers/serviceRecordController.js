@@ -2,6 +2,7 @@ const ServiceRecord = require('../models/ServiceRecord');
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const Vehicle = require('../models/Vehicle');
+const notificationService = require('../services/notificationService');
 
 // ========================
 // ADMIN ENDPOINTS
@@ -302,6 +303,18 @@ exports.startServiceTimer = async (req, res) => {
     
     await serviceRecord.save();
 
+    // Populate customer data for notification
+    const populated = await ServiceRecord.findById(id)
+      .populate('customerId', 'firstName lastName email phoneNumber');
+
+    // Send service started notification
+    try {
+      await notificationService.notifyServiceStarted(populated, populated.customerId._id);
+      console.log('✉️ Service started notification sent');
+    } catch (notifError) {
+      console.error('Failed to send service started notification:', notifError);
+    }
+
     res.json({
       success: true,
       message: 'Timer started successfully',
@@ -498,7 +511,16 @@ exports.completeService = async (req, res) => {
     const populated = await ServiceRecord.findById(id)
       .populate('assignedEmployee', 'name employeeId')
       .populate('vehicleId', 'make model year licensePlate')
-      .populate('customerId', 'firstName lastName phoneNumber');
+      .populate('customerId', 'firstName lastName phoneNumber email');
+
+    // Send service completion notification
+    try {
+      await notificationService.notifyServiceCompleted(populated, populated.customerId._id);
+      await notificationService.notifyVehicleReady(populated, populated.customerId._id);
+      console.log('✉️ Service completion and vehicle ready notifications sent');
+    } catch (notifError) {
+      console.error('Failed to send service notifications:', notifError);
+    }
 
     res.json({
       success: true,
