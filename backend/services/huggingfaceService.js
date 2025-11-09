@@ -2,7 +2,7 @@ class HuggingFaceService {
   constructor() {
     this.apiKey = process.env.HUGGINGFACE_API_KEY;
     // Using a more stable and faster model for chat
-    this.apiUrl = 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium';
+    this.apiUrl = 'https://router.huggingface.co/hf-inference/models/microsoft/DialoGPT-medium';
     
     // AutoCare business context for the AI
     this.systemContext = `You are AutoCare Assistant, a helpful AI assistant for AutoCare, a professional vehicle maintenance and repair service center.
@@ -230,7 +230,7 @@ Keep responses helpful but brief (2-4 sentences max unless detailed explanation 
 
   // Alternative method using different models
   async generateResponseWithModel(message, model = 'microsoft/DialoGPT-medium', conversationHistory = []) {
-    const modelUrl = `https://api-inference.huggingface.co/models/${model}`;
+    const modelUrl = `https://router.huggingface.co/hf-inference/models/${model}`;
     
     try {
       const response = await fetch(modelUrl, {
