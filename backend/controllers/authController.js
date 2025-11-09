@@ -446,7 +446,7 @@ class AuthController {
         }
       }
 
-      // Create new customer
+      // Create new customer (verified by default since they're signing up directly)
       const customer = new User({
         role: 'customer',
         phoneNumber: formattedPhone,

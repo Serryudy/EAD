@@ -13,20 +13,20 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 interface Employee {
-  id: string;
-  name: string;
-  role: string;
-  active: number;
-  completed: number;
-  rating: number;
-  status: string;
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phoneNumber: string;
+  nic?: string;
+  isActive?: boolean;
 }
 
 interface EditEmployeeDialogProps {
   employee: Employee | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (employee: Employee) => void;
+  onSave: (employee: Partial<Employee>) => void;
 }
 
 export function EditEmployeeDialog({ 
@@ -35,35 +35,39 @@ export function EditEmployeeDialog({
   onOpenChange,
   onSave 
 }: EditEmployeeDialogProps) {
-  const [name, setName] = useState('');
-  const [role, setRole] = useState('');
-  const [status, setStatus] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [nic, setNic] = useState('');
 
   useEffect(() => {
     if (employee) {
-      setName(employee.name);
-      setRole(employee.role);
-      setStatus(employee.status);
+      setFirstName(employee.firstName);
+      setLastName(employee.lastName);
+      setEmail(employee.email || '');
+      setPhoneNumber(employee.phoneNumber);
+      setNic(employee.nic || '');
     }
   }, [employee]);
 
   if (!employee) return null;
 
   const handleSave = () => {
-    if (!name || !role || !status) {
-      toast.error('Please fill in all fields');
+    if (!firstName || !lastName || !phoneNumber) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
-    const updatedEmployee: Employee = {
-      ...employee,
-      name,
-      role,
-      status
+    const updatedEmployee: Partial<Employee> = {
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      nic
     };
 
     onSave(updatedEmployee);
-    toast.success('Employee updated successfully!');
     onOpenChange(false);
   };
 
@@ -78,69 +82,65 @@ export function EditEmployeeDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name *</Label>
+              <Input
+                id="firstName"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="e.g., John"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name *</Label>
+              <Input
+                id="lastName"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="e.g., Smith"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="employeeName">Employee Name *</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="employeeName"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., John Smith"
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g., john.smith@email.com"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="role">Role *</Label>
+              <Label htmlFor="phoneNumber">Phone Number *</Label>
               <Input
-                id="role"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="e.g., Senior Technician"
+                id="phoneNumber"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="e.g., +1234567890"
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="status">Status *</Label>
-              <select
-                id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                <option value="active">Active</option>
-                <option value="on-leave">On Leave</option>
-                <option value="inactive">Inactive</option>
-              </select>
+              <Label htmlFor="nic">NIC</Label>
+              <Input
+                id="nic"
+                value={nic}
+                onChange={(e) => setNic(e.target.value)}
+                placeholder="e.g., 123456789V"
+              />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Performance Statistics</Label>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xs text-slate-500">Active Services</p>
-                <p className="text-xl font-semibold text-[#0077b6]">{employee.active}</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xs text-slate-500">Completed</p>
-                <p className="text-xl font-semibold text-green-600">{employee.completed}</p>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <p className="text-xs text-slate-500">Rating</p>
-                <p className="text-xl font-semibold text-amber-600">{employee.rating} ⭐</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> Changes to employee status will affect their availability for new service assignments.
-            </p>
           </div>
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button 

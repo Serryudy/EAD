@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const WorkLog = require('../models/WorkLog');
 const Appointment = require('../models/Appointment');
 
@@ -288,6 +289,14 @@ exports.getTechnicianWorkSummary = async (req, res) => {
     const { technicianId } = req.params;
     const { startDate, endDate } = req.query;
 
+    // Validate technicianId is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(technicianId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid technician ID format'
+      });
+    }
+
     const matchQuery = { 
       technicianId: mongoose.Types.ObjectId(technicianId),
       isActive: true 
@@ -298,6 +307,8 @@ exports.getTechnicianWorkSummary = async (req, res) => {
       if (startDate) matchQuery.createdAt.$gte = new Date(startDate);
       if (endDate) matchQuery.createdAt.$lte = new Date(endDate);
     }
+
+    console.log('🔍 Fetching work summary for technician:', technicianId);
 
     const summary = await WorkLog.aggregate([
       { $match: matchQuery },
@@ -312,6 +323,8 @@ exports.getTechnicianWorkSummary = async (req, res) => {
     ]);
 
     const totalLogs = await WorkLog.countDocuments(matchQuery);
+
+    console.log('Work summary result:', { totalLogs, summary });
 
     res.json({
       success: true,

@@ -40,8 +40,8 @@ const serviceRecordSchema = new mongoose.Schema({
   completedAt: Date,
   status: {
     type: String,
-    enum: ['pending', 'in-progress', 'completed', 'cancelled'],
-    default: 'pending'
+    enum: ['received', 'in-progress', 'quality-check', 'completed', 'cancelled'],
+    default: 'received'
   },
   progressPercentage: {
     type: Number,
@@ -88,6 +88,32 @@ serviceRecordSchema.methods.startTimer = function() {
   this.timerStarted = true;
   this.timerStartTime = new Date();
   if (!this.startedAt) this.startedAt = new Date();
+  if (this.status === 'received') this.status = 'in-progress';
+};
+
+serviceRecordSchema.methods.stopTimer = function() {
+  if (this.timerStarted && this.timerStartTime) {
+    const elapsed = Date.now() - this.timerStartTime.getTime();
+    this.timerDuration = (this.timerDuration || 0) + elapsed;
+  }
+  this.timerStarted = false;
+};
+
+serviceRecordSchema.methods.getCurrentTimerValue = function() {
+  let total = this.timerDuration || 0;
+  if (this.timerStarted && this.timerStartTime) {
+    const currentElapsed = Date.now() - this.timerStartTime.getTime();
+    total += currentElapsed;
+  }
+  return total;
+};
+
+serviceRecordSchema.methods.addLiveUpdate = function(message, userId) {
+  this.liveUpdates.push({
+    message,
+    timestamp: new Date(),
+    updatedBy: userId
+  });
 };
 
 module.exports = mongoose.model('ServiceRecord', serviceRecordSchema);

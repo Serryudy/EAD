@@ -58,13 +58,12 @@ export default function TimeSlotSelectionStep({
       // Add service IDs
       serviceIds.forEach(id => params.append('serviceIds', id));
 
-      // Use native fetch with auth token
-      const token = sessionStorage.getItem('authToken');
+      // Use fetch with credentials to include HTTP-only cookies
       const response = await fetch(
         `http://localhost:5000/api/appointments/available-slots?${params.toString()}`,
         {
+          credentials: 'include', // Include HTTP-only cookies
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         }

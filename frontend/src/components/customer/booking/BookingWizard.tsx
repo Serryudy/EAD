@@ -41,7 +41,7 @@ export interface Vehicle {
   model: string;
   year: number;
   licensePlate: string;
-  type: string;
+  type?: string;
   mileage?: number;
 }
 
@@ -142,10 +142,10 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
         serviceDescription: bookingData.services.map(s => `${s.name} - ${s.description || 'Professional service'}`).join('\n'),
         // Both old and new date/time fields (model has both as required)
         appointmentDate: bookingData.date.toISOString(),
-        appointmentTime: bookingData.timeSlot.startTime || bookingData.timeSlot.time?.split(' - ')[0] || '09:00',
+        appointmentTime: bookingData.timeSlot.startTime || '09:00',
         preferredDate: bookingData.date.toISOString(),
-        timeWindow: bookingData.timeSlot.time || `${bookingData.timeSlot.displayTime || bookingData.timeSlot.startTime} - ${bookingData.timeSlot.displayEndTime || bookingData.timeSlot.endTime}`,
-        duration: bookingData.timeSlot.duration || 180,
+        timeWindow: `${bookingData.timeSlot.displayTime || bookingData.timeSlot.startTime} - ${bookingData.timeSlot.displayEndTime || bookingData.timeSlot.endTime}`,
+        duration: 180, // Default duration in minutes
         additionalNotes: bookingData.specialInstructions || '',
         estimatedDuration: `~${bookingData.services.reduce((sum, s) => sum + s.estimatedDuration, 0)}h`,
         estimatedCost: bookingData.services.reduce((sum, s) => sum + s.basePrice, 0) * bookingData.vehicles.length
@@ -153,12 +153,11 @@ export default function BookingWizard({ user, onComplete, onCancel }: BookingWiz
 
       console.log('📤 Submitting appointment:', appointmentPayload);
 
-      // Use native fetch with auth token
-      const token = sessionStorage.getItem('authToken');
+      // Use fetch with credentials to include HTTP-only cookies
       const response = await fetch('http://localhost:5000/api/appointments', {
         method: 'POST',
+        credentials: 'include', // Include HTTP-only cookies
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(appointmentPayload)

@@ -2,6 +2,7 @@ const ServiceRecord = require('../models/ServiceRecord');
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const Vehicle = require('../models/Vehicle');
+const notificationService = require('../services/notificationService');
 
 // ========================
 // ADMIN ENDPOINTS
@@ -12,7 +13,7 @@ const Vehicle = require('../models/Vehicle');
  */
 exports.transferAppointmentToService = async (req, res) => {
   try {
-    const { appointmentId } = req.params;
+    const appointmentId = req.params.id; // Changed from req.params.appointmentId
     const { assignedEmployeeId, estimatedCompletionTime } = req.body;
 
     // Get the appointment
@@ -62,7 +63,8 @@ exports.transferAppointmentToService = async (req, res) => {
       timeScheduled: appointment.timeWindow || appointment.scheduledTime || 'Not specified',
       estimatedCompletionTime: estimatedCompletionTime || new Date(Date.now() + 2 * 60 * 60 * 1000),
       estimatedCost: appointment.estimatedCost || 0,
-      status: 'pending'
+      status: 'received', // Changed from 'pending' to 'received'
+      progressPercentage: 0 // Explicitly set to 0
     });
 
     await serviceRecord.save();
@@ -73,9 +75,9 @@ exports.transferAppointmentToService = async (req, res) => {
     await appointment.save();
 
     const populatedRecord = await ServiceRecord.findById(serviceRecord._id)
-      .populate('assignedEmployee', 'name employeeId')
-      .populate('vehicleId', 'make model year licensePlate')
-      .populate('customerId', 'firstName lastName phoneNumber');
+      .populate('assignedEmployee', 'firstName lastName employeeId') // Fixed field names
+      .populate('vehicleId', 'vehicleNumber type make model year') // Fixed field names
+      .populate('customerId', 'firstName lastName phoneNumber'); // Fixed field names
 
     res.status(201).json({
       success: true,
@@ -279,11 +281,11 @@ exports.startServiceTimer = async (req, res) => {
       });
     }
 
-    // Check if status is in-progress
-    if (serviceRecord.status !== 'in-progress') {
+    // Check if status allows starting timer (received or in-progress)
+    if (!['received', 'in-progress'].includes(serviceRecord.status)) {
       return res.status(400).json({
         success: false,
-        message: 'Service must be in-progress status to start timer'
+        message: 'Cannot start timer for this service status'
       });
     }
 
@@ -295,11 +297,23 @@ exports.startServiceTimer = async (req, res) => {
       });
     }
 
-    // Start timer
+    // Start timer (this will also update status to in-progress if needed)
     serviceRecord.startTimer();
     serviceRecord.addLiveUpdate('Service work started', employeeId);
     
     await serviceRecord.save();
+
+    // Populate customer data for notification
+    const populated = await ServiceRecord.findById(id)
+      .populate('customerId', 'firstName lastName email phoneNumber');
+
+    // Send service started notification
+    try {
+      await notificationService.notifyServiceStarted(populated, populated.customerId._id);
+      console.log('✉️ Service started notification sent');
+    } catch (notifError) {
+      console.error('Failed to send service started notification:', notifError);
+    }
 
     res.json({
       success: true,
@@ -497,7 +511,16 @@ exports.completeService = async (req, res) => {
     const populated = await ServiceRecord.findById(id)
       .populate('assignedEmployee', 'name employeeId')
       .populate('vehicleId', 'make model year licensePlate')
-      .populate('customerId', 'firstName lastName phoneNumber');
+      .populate('customerId', 'firstName lastName phoneNumber email');
+
+    // Send service completion notification
+    try {
+      await notificationService.notifyServiceCompleted(populated, populated.customerId._id);
+      await notificationService.notifyVehicleReady(populated, populated.customerId._id);
+      console.log('✉️ Service completion and vehicle ready notifications sent');
+    } catch (notifError) {
+      console.error('Failed to send service notifications:', notifError);
+    }
 
     res.json({
       success: true,
