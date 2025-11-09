@@ -3,59 +3,79 @@ import { MessageCircle, X, Send, Bot } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
+import { chatbotApi } from '../../services/api';
+import type { ChatMessageDto } from '../../services/api';
 
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<ChatMessageDto[]>([
     { id: '1', text: 'Hello! How can I help you today?', sender: 'bot', timestamp: new Date() }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
-    const userMessage = {
+    const userMessage: ChatMessageDto = {
       id: Date.now().toString(),
-      text: inputMessage,
+      text: inputMessage.trim(),
       sender: 'user',
       timestamp: new Date()
     };
 
-    setMessages([...messages, userMessage]);
+    // Add user message to chat
+    setMessages((prev) => [...prev, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate bot response
-    setTimeout(() => {
-      const botResponse = {
+    try {
+      // Call the AI API
+      const response = await chatbotApi.sendMessage({
+        message: currentInput,
+        conversationHistory: messages
+      });
+
+      // Add bot response to chat
+      const botResponse: ChatMessageDto = {
         id: (Date.now() + 1).toString(),
-        text: getBotResponse(inputMessage),
+        text: response.data.message,
+        sender: 'bot',
+        timestamp: new Date(response.data.timestamp)
+      };
+
+      setMessages((prev) => [...prev, botResponse]);
+      
+      // If model is loading, show a note
+      if (response.data.isLoading) {
+        setTimeout(() => {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: (Date.now() + 2).toString(),
+              text: "💡 Tip: The AI model is warming up. Your next messages will be faster!",
+              sender: 'bot',
+              timestamp: new Date()
+            }
+          ]);
+        }, 1000);
+      }
+
+    } catch (err) {
+      console.error('Chatbot error:', err);
+      
+      // Add error message to chat
+      const errorMessage: ChatMessageDto = {
+        id: (Date.now() + 1).toString(),
+        text: "I apologize, but I'm having trouble connecting right now. Please try again in a moment, or contact our service center directly for immediate assistance.",
         sender: 'bot',
         timestamp: new Date()
       };
-      setMessages((prev) => [...prev, botResponse]);
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
-  };
-
-  const getBotResponse = (message: string) => {
-    const lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.includes('appointment') || lowerMessage.includes('book')) {
-      return 'I can help you book an appointment! Let me check available service slots... We have availability on Monday, Wednesday, and Friday next week. What time works best for you?';
     }
-    if (lowerMessage.includes('status') || lowerMessage.includes('progress')) {
-      return 'I can check your service status. Your current oil change service is 75% complete and should be ready by tomorrow afternoon.';
-    }
-    if (lowerMessage.includes('price') || lowerMessage.includes('cost')) {
-      return 'Our standard services range from $50 for oil changes to $500 for major tune-ups. Would you like a detailed quote for a specific service?';
-    }
-    if (lowerMessage.includes('hours') || lowerMessage.includes('open')) {
-      return 'We\'re open Monday-Friday 8AM-6PM, and Saturday 9AM-4PM. Closed on Sundays.';
-    }
-    
-    return 'I understand you\'re asking about ' + message + '. Let me connect you with a service advisor who can provide more specific information.';
   };
 
   return (
