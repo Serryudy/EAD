@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Car, Plus, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Vehicle } from './BookingWizard';
+import { vehicleApi } from '../../../services/api';
 
 interface VehicleSelectionStepProps {
   selectedVehicles: Vehicle[];
@@ -51,33 +52,18 @@ export default function VehicleSelectionStep({
   const fetchVehicles = useCallback(async () => {
     try {
       setLoading(true);
-      const token = sessionStorage.getItem('authToken');
+      const response = await vehicleApi.getUserVehicles();
       
-      // Must have token - user should be authenticated
-      if (!token) {
-        console.error('No auth token found');
-        setVehicles([]);
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch('http://localhost:5000/api/vehicles', {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      if (response.success && response.data) {
+        const vehiclesList = response.data;
+        setVehicles(vehiclesList);
+        
+        // Auto-select if only one vehicle
+        if (vehiclesList.length === 1 && selectedVehicles.length === 0) {
+          onVehiclesChange([vehiclesList[0]]);
         }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch vehicles');
-      }
-
-      const data = await response.json();
-      const vehiclesList = Array.isArray(data) ? data : (data.vehicles || data.data || []);
-      setVehicles(vehiclesList);
-      
-      // Auto-select if only one vehicle
-      if (vehiclesList.length === 1 && selectedVehicles.length === 0) {
-        onVehiclesChange([vehiclesList[0]]);
+      } else {
+        setVehicles([]);
       }
     } catch (error) {
       console.error('Error fetching vehicles:', error);
@@ -111,55 +97,38 @@ export default function VehicleSelectionStep({
     
     try {
       setAdding(true);
-      const token = sessionStorage.getItem('authToken');
-      
-      if (!token) {
-        toast.error('Please login to add vehicles');
-        return;
-      }
 
-      const response = await fetch('http://localhost:5000/api/vehicles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          licensePlate: newVehicle.licensePlate.toUpperCase(),
-          make: newVehicle.make,
-          model: newVehicle.model,
-          year: parseInt(newVehicle.year.toString()),
-          type: newVehicle.type,
-          mileage: newVehicle.mileage ? parseInt(newVehicle.mileage) : undefined
-        })
+      const response = await vehicleApi.addVehicle({
+        licensePlate: newVehicle.licensePlate.toUpperCase(),
+        make: newVehicle.make,
+        model: newVehicle.model,
+        year: parseInt(newVehicle.year.toString()),
+        type: newVehicle.type,
+        mileage: newVehicle.mileage ? parseInt(newVehicle.mileage) : undefined
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to add vehicle');
+      if (response.success && response.data) {
+        toast.success('Vehicle added successfully!');
+        
+        // Refresh vehicle list
+        await fetchVehicles();
+        
+        // Auto-select the new vehicle
+        onVehiclesChange([...selectedVehicles, response.data]);
+        
+        // Reset form and close dialog
+        setNewVehicle({
+          licensePlate: '',
+          make: '',
+          model: '',
+          year: new Date().getFullYear(),
+          type: 'Sedan',
+          mileage: ''
+        });
+        setShowAddDialog(false);
+      } else {
+        throw new Error(response.message || 'Failed to add vehicle');
       }
-
-      const result = await response.json();
-      const addedVehicle = result.vehicle || result.data || result;
-      
-      toast.success('Vehicle added successfully!');
-      
-      // Refresh vehicle list
-      await fetchVehicles();
-      
-      // Auto-select the new vehicle
-      onVehiclesChange([...selectedVehicles, addedVehicle]);
-      
-      // Reset form and close dialog
-      setNewVehicle({
-        licensePlate: '',
-        make: '',
-        model: '',
-        year: new Date().getFullYear(),
-        type: 'Sedan',
-        mileage: ''
-      });
-      setShowAddDialog(false);
       
     } catch (error) {
       console.error('Error adding vehicle:', error);

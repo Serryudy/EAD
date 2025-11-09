@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Car, Clock, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -6,24 +6,44 @@ import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import type { User } from '../../contexts/AuthContext';
+import { vehicleApi, type VehicleDto } from '../../services/api';
 
 interface AppointmentBookingProps {
-  user: User;
   onNavigate: (page: string) => void;
 }
 
-export function AppointmentBooking({ user, onNavigate }: AppointmentBookingProps) {
+export function AppointmentBooking({ onNavigate }: AppointmentBookingProps) {
   const [step, setStep] = useState<'vehicle' | 'service' | 'datetime' | 'confirm'>('vehicle');
-  const [selectedVehicle, setSelectedVehicle] = useState(user.vehicle ? '1' : '');
+  const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [vehicles, setVehicles] = useState<VehicleDto[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const vehicles = user.vehicle ? [
-    { id: '1', name: `${user.vehicle.year} ${user.vehicle.make} ${user.vehicle.model}`, plate: user.vehicle.licensePlate }
-  ] : [];
+  // Fetch user's vehicles on component mount
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        setLoading(true);
+        const response = await vehicleApi.getUserVehicles();
+        if (response.success && response.data) {
+          setVehicles(response.data);
+          // Auto-select first vehicle if available
+          if (response.data.length > 0) {
+            setSelectedVehicle(response.data[0]._id);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch vehicles:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVehicles();
+  }, []);
 
   const services = [
     { id: 'oil-change', name: 'Oil Change & Filter', duration: '1 hour', price: '$49.99' },
@@ -159,41 +179,58 @@ export function AppointmentBooking({ user, onNavigate }: AppointmentBookingProps
           <div className="space-y-6">
             <div>
               <h3 className="text-[#03045e] mb-4">Select Vehicle</h3>
-              <div className="grid gap-4">
-                {vehicles.map((vehicle) => (
-                  <button
-                    key={vehicle.id}
-                    onClick={() => setSelectedVehicle(vehicle.id)}
-                    className={`p-4 rounded-xl border-2 transition-all text-left ${
-                      selectedVehicle === vehicle.id
-                        ? 'border-[#0077b6] bg-[#90e0ef]/10'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
+              {loading ? (
+                <div className="text-center py-8 text-slate-600">Loading vehicles...</div>
+              ) : vehicles.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-slate-600 mb-4">You don't have any vehicles registered yet.</p>
+                  <Button
+                    onClick={() => onNavigate('customer-dashboard')}
+                    variant="outline"
+                    className="border-[#0077b6] text-[#0077b6] hover:bg-[#90e0ef]/10"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-[#0077b6] flex items-center justify-center">
-                        <Car className="h-6 w-6 text-white" />
+                    Go to Profile to Add Vehicle
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {vehicles.map((vehicle) => (
+                    <button
+                      key={vehicle._id}
+                      onClick={() => setSelectedVehicle(vehicle._id)}
+                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                        selectedVehicle === vehicle._id
+                          ? 'border-[#0077b6] bg-[#90e0ef]/10'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-lg bg-[#0077b6] flex items-center justify-center">
+                          <Car className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-slate-900">{vehicle.year} {vehicle.make} {vehicle.model}</p>
+                          <p className="text-slate-600">{vehicle.licensePlate}</p>
+                        </div>
+                        {selectedVehicle === vehicle._id && (
+                          <CheckCircle2 className="h-6 w-6 text-[#0077b6]" />
+                        )}
                       </div>
-                      <div className="flex-1">
-                        <p className="text-slate-900">{vehicle.name}</p>
-                        <p className="text-slate-600">{vehicle.plate}</p>
-                      </div>
-                      {selectedVehicle === vehicle.id && (
-                        <CheckCircle2 className="h-6 w-6 text-[#0077b6]" />
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <Button
-              onClick={() => setStep('service')}
-              disabled={!selectedVehicle}
-              className="w-full bg-[#0077b6] hover:bg-[#03045e]"
-            >
-              Continue
-            </Button>
+            {vehicles.length > 0 && (
+              <Button
+                onClick={() => setStep('service')}
+                disabled={!selectedVehicle}
+                className="w-full bg-[#0077b6] hover:bg-[#03045e]"
+              >
+                Continue
+              </Button>
+            )}
           </div>
         )}
 
@@ -326,7 +363,12 @@ export function AppointmentBooking({ user, onNavigate }: AppointmentBookingProps
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-slate-600">Vehicle:</span>
-                      <span className="text-slate-900">{vehicles.find(v => v.id === selectedVehicle)?.name}</span>
+                      <span className="text-slate-900">
+                        {(() => {
+                          const vehicle = vehicles.find(v => v._id === selectedVehicle);
+                          return vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'N/A';
+                        })()}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">Service:</span>

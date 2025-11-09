@@ -1,6 +1,7 @@
 const Appointment = require('../models/Appointment');
 const Vehicle = require('../models/Vehicle');
 const User = require('../models/User');
+const notificationService = require('../services/notificationService');
 
 // Helper function to parse time window and calculate time range
 const parseTimeWindow = (timeWindow, preferredDate) => {
@@ -232,9 +233,47 @@ exports.createAppointment = async (req, res) => {
     await vehicle.save();
 
     // Populate customer and vehicle data for response
-    await appointment.populate('customerId', 'name email mobile');
+    await appointment.populate('customerId', 'firstName lastName email phone phoneNumber');
     await appointment.populate('vehicleId');
-    await appointment.populate('assignedEmployee', 'name employeeId');
+    await appointment.populate('assignedEmployee', 'firstName lastName employeeId');
+    await appointment.populate('serviceIds', 'name price estimatedTime description');
+
+    // Get customer ID for notifications
+    const customerId = appointment.customerId._id || appointment.customerId;
+
+    // Send notification to customer
+    try {
+      console.log('🔍 DEBUG: About to create notification for customer:', customerId);
+      console.log('🔍 DEBUG: Appointment details:', {
+        id: appointment._id,
+        number: appointment.appointmentNumber,
+        date: appointment.scheduledDate
+      });
+      await notificationService.notifyAppointmentCreated(appointment, customerId);
+      console.log('✅ DEBUG: Notification created successfully');
+      console.log('✉️ Appointment notification sent to customer');
+    } catch (notifError) {
+      console.error('❌ Failed to send appointment notification:', notifError);
+      // Don't fail the request if notification fails
+    }
+
+    // Send notification to admin about new appointment
+    try {
+      await notificationService.notifyAdminNewAppointment(appointment);
+      console.log('✉️ Admin notification sent about new appointment');
+    } catch (notifError) {
+      console.error('Failed to send admin notification:', notifError);
+    }
+
+    // If employee was auto-assigned, notify them
+    if (appointment.assignedEmployee) {
+      try {
+        await notificationService.notifyEmployeeAssigned(appointment, appointment.assignedEmployee._id);
+        console.log('✉️ Employee notification sent about assignment');
+      } catch (notifError) {
+        console.error('Failed to send employee notification:', notifError);
+      }
+    }
 
     // Prepare success message
     let message = 'Appointment created successfully';
@@ -309,9 +348,10 @@ exports.getAllAppointments = async (req, res) => {
     const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
     const appointments = await Appointment.find(query)
-      .populate('customerId', 'name email phone mobile')
-      .populate('assignedEmployee', 'name email employeeId')
+      .populate('customerId', 'firstName lastName email phone phoneNumber')
+      .populate('assignedEmployee', 'firstName lastName email employeeId')
       .populate('vehicleId', 'vehicleNumber type make model year')
+      .populate('serviceIds', 'name price estimatedTime description')
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit));
@@ -340,14 +380,16 @@ exports.getAllAppointments = async (req, res) => {
 
 // Get appointment by ID
 exports.getAppointmentById = async (req, res) => {
+  console.log('🔍 getAppointmentById called with params:', req.params);
   try {
     // Use authenticated user from req.user
     const user = req.user;
     
     const appointment = await Appointment.findById(req.params.id)
-      .populate('customerId', 'name email phone mobile')
-      .populate('assignedEmployee', 'name email employeeId')
-      .populate('vehicleId', 'vehicleNumber type make model year');
+      .populate('customerId', 'firstName lastName email phone phoneNumber')
+      .populate('assignedEmployee', 'firstName lastName email employeeId')
+      .populate('vehicleId', 'vehicleNumber type make model year')
+      .populate('serviceIds', 'name price estimatedTime description');
 
     if (!appointment) {
       return res.status(404).json({
@@ -433,7 +475,8 @@ exports.updateAppointmentStatus = async (req, res) => {
     const { id } = req.params;
     const { status, cancellationReason } = req.body;
 
-    const appointment = await Appointment.findById(id);
+    const appointment = await Appointment.findById(id)
+      .populate('customerId', 'name email mobile');
 
     if (!appointment) {
       return res.status(404).json({
@@ -442,6 +485,7 @@ exports.updateAppointmentStatus = async (req, res) => {
       });
     }
 
+    const oldStatus = appointment.status;
     appointment.status = status;
     
     if (status === 'cancelled' && cancellationReason) {
@@ -449,6 +493,19 @@ exports.updateAppointmentStatus = async (req, res) => {
     }
 
     await appointment.save();
+
+    // Send notification based on status change
+    try {
+      if (status === 'confirmed' && oldStatus !== 'confirmed') {
+        await notificationService.notifyAppointmentConfirmed(appointment, appointment.customerId._id);
+        console.log('✉️ Appointment confirmation notification sent');
+      } else if (status === 'cancelled' && oldStatus !== 'cancelled') {
+        await notificationService.notifyAppointmentCancelled(appointment, appointment.customerId._id, 'customer');
+        console.log('✉️ Appointment cancellation notification sent');
+      }
+    } catch (notifError) {
+      console.error('Failed to send status notification:', notifError);
+    }
 
     res.json({
       success: true,
@@ -531,13 +588,29 @@ exports.assignEmployee = async (req, res) => {
         status: 'confirmed'
       },
       { new: true }
-    );
+    ).populate('customerId', 'name email mobile');
 
     if (!appointment) {
       return res.status(404).json({
         success: false,
         message: 'Appointment not found'
       });
+    }
+
+    // Notify employee about assignment
+    try {
+      await notificationService.notifyEmployeeAssigned(appointment, employeeId);
+      console.log('✉️ Employee notified about appointment assignment');
+    } catch (notifError) {
+      console.error('Failed to notify employee:', notifError);
+    }
+
+    // Notify customer about confirmation
+    try {
+      await notificationService.notifyAppointmentConfirmed(appointment, appointment.customerId._id);
+      console.log('✉️ Customer notified about appointment confirmation');
+    } catch (notifError) {
+      console.error('Failed to notify customer:', notifError);
     }
 
     res.json({
@@ -561,7 +634,8 @@ exports.cancelAppointment = async (req, res) => {
     const { id } = req.params;
     const { cancellationReason } = req.body;
 
-    const appointment = await Appointment.findById(id);
+    const appointment = await Appointment.findById(id)
+      .populate('customerId', 'name email mobile');
 
     if (!appointment) {
       return res.status(404).json({
@@ -580,6 +654,14 @@ exports.cancelAppointment = async (req, res) => {
     appointment.status = 'cancelled';
     appointment.cancellationReason = cancellationReason || 'Not specified';
     await appointment.save();
+
+    // Send cancellation notification
+    try {
+      await notificationService.notifyAppointmentCancelled(appointment, appointment.customerId._id, 'customer');
+      console.log('✉️ Appointment cancellation notification sent');
+    } catch (notifError) {
+      console.error('Failed to send cancellation notification:', notifError);
+    }
 
     res.json({
       success: true,
@@ -654,6 +736,15 @@ exports.getEmployeeAppointments = async (req, res) => {
     const { employeeId } = req.params;
     const { status, date } = req.query;
 
+    // Validate employeeId is a valid MongoDB ObjectId
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid employee ID format'
+      });
+    }
+
     const query = { assignedEmployee: employeeId };
     
     if (status) query.status = status;
@@ -665,10 +756,16 @@ exports.getEmployeeAppointments = async (req, res) => {
       query.preferredDate = { $gte: startOfDay, $lte: endOfDay };
     }
 
+    console.log('🔍 Fetching appointments for employee:', employeeId);
+    console.log('Query:', JSON.stringify(query));
+
     const appointments = await Appointment.find(query)
-      .populate('customerId', 'name email phone')
+      .populate('customerId', 'firstName lastName email phone phoneNumber')
       .populate('vehicleId', 'vehicleNumber type make model year')
+      .populate('serviceIds', 'name price estimatedTime description')
       .sort({ preferredDate: 1 });
+
+    console.log('Found appointments:', appointments.length);
 
     res.json({
       success: true,
@@ -772,6 +869,7 @@ const Service = require('../models/Service');
  * GET /api/appointments/available-slots
  */
 exports.getAvailableSlots = async (req, res) => {
+  console.log('🎯 getAvailableSlots called with query:', req.query);
   try {
     const { date, serviceIds, vehicleCount = 1 } = req.query;
     

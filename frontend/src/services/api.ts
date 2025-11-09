@@ -67,12 +67,18 @@ export interface UserDto {
 }
 
 export interface VehicleDto {
-  id: number;
+  _id: string;
   make: string;
   model: string;
   year: number;
   licensePlate: string;
-  userId: number;
+  ownerId: string;
+  ownerName?: string;
+  isActive?: boolean;
+  type?: string;
+  color?: string;
+  mileage?: number;
+  engineType?: string;
 }
 
 export interface ChatMessageDto {
@@ -105,7 +111,7 @@ async function apiCall<T>(
     'Content-Type': 'application/json',
   };
 
-  // Get token from sessionStorage if available
+  // Get token from sessionStorage if available (fallback)
   const token = sessionStorage.getItem('authToken');
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
@@ -113,6 +119,7 @@ async function apiCall<T>(
 
   const config: RequestInit = {
     ...options,
+    credentials: 'include', // Include HTTP-only cookies in requests
     headers: {
       ...defaultHeaders,
       ...options.headers,
@@ -195,21 +202,11 @@ export const authApi = {
 
 // User API functions
 export const userApi = {
-  // Get current user profile
+  // Get current user profile from backend
   getProfile: async (): Promise<ApiResponse<UserDto>> => {
-    const token = sessionStorage.getItem('authToken');
-    const user = sessionStorage.getItem('user');
-    
-    if (!token || !user) {
-      throw new Error('Not authenticated');
-    }
-    
-    // Parse user from sessionStorage (already stored during login/signup)
-    return {
-      success: true,
-      message: 'Profile retrieved',
-      data: JSON.parse(user)
-    };
+    return apiCall<UserDto>('/profile', {
+      method: 'GET',
+    });
   },
 
   // Update user profile
@@ -224,7 +221,7 @@ export const userApi = {
 // Vehicle API functions
 export const vehicleApi = {
   // Add vehicle for customer
-  addVehicle: async (vehicleData: Omit<VehicleDto, 'id' | 'userId'>): Promise<ApiResponse<VehicleDto>> => {
+  addVehicle: async (vehicleData: Omit<VehicleDto, '_id' | 'ownerId' | 'ownerName' | 'isActive'>): Promise<ApiResponse<VehicleDto>> => {
     return apiCall<VehicleDto>('/vehicles', {
       method: 'POST',
       body: JSON.stringify(vehicleData),
@@ -268,5 +265,311 @@ export const chatbotApi = {
   },
 };
 
+// Appointment DTOs
+export interface AppointmentDto {
+  _id: string;
+  customerId?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    email?: string;
+  };
+  vehicleId?: {
+    _id: string;
+    make: string;
+    model: string;
+    year: number;
+    licensePlate: string;
+  };
+  serviceType: string;
+  serviceDescription?: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';
+  assignedEmployee?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    employeeId: string;
+  };
+  estimatedDuration?: string;
+  estimatedCost?: number;
+  additionalNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
+// Appointment API functions
+export const appointmentApi = {
+  // Get all appointments (admin can see all, employee sees all, customer sees only their own)
+  getAllAppointments: async (filters?: {
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    customerId?: string;
+    employeeId?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<ApiResponse<AppointmentDto[]>> => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+    if (filters?.customerId) params.append('customerId', filters.customerId);
+    if (filters?.employeeId) params.append('employeeId', filters.employeeId);
+    if (filters?.page) params.append('page', filters.page.toString());
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    if (filters?.sortBy) params.append('sortBy', filters.sortBy);
+    if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);
+    
+    const queryString = params.toString();
+    return apiCall<AppointmentDto[]>(`/appointments${queryString ? `?${queryString}` : ''}`);
+  },
 
+  // Get appointments for a specific employee
+  getEmployeeAppointments: async (employeeId: string, status?: string): Promise<ApiResponse<AppointmentDto[]>> => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    const queryString = params.toString();
+    
+    return apiCall<AppointmentDto[]>(`/appointments/employee/${employeeId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  // Update appointment status
+  updateAppointmentStatus: async (appointmentId: string, status: string): Promise<ApiResponse<AppointmentDto>> => {
+    return apiCall<AppointmentDto>(`/appointments/${appointmentId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  // Get appointment by ID
+  getAppointmentById: async (appointmentId: string): Promise<ApiResponse<AppointmentDto>> => {
+    return apiCall<AppointmentDto>(`/appointments/${appointmentId}`);
+  },
+};
+
+// Work Log DTOs
+export interface WorkLogDto {
+  _id: string;
+  appointmentId: string;
+  technicianId: string;
+  startTime: string;
+  endTime?: string;
+  hoursWorked?: number;
+  workDescription: string;
+  status: 'in-progress' | 'completed' | 'paused';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Work Log API functions
+export const workLogApi = {
+  // Create a new work log (start timer)
+  createWorkLog: async (appointmentId: string, workDescription: string): Promise<ApiResponse<WorkLogDto>> => {
+    return apiCall<WorkLogDto>('/work-logs', {
+      method: 'POST',
+      body: JSON.stringify({
+        appointmentId,
+        workDescription,
+        startTime: new Date().toISOString(),
+        status: 'in-progress'
+      }),
+    });
+  },
+
+  // Complete a work log (stop timer)
+  completeWorkLog: async (workLogId: string): Promise<ApiResponse<WorkLogDto>> => {
+    return apiCall<WorkLogDto>(`/work-logs/${workLogId}/complete`, {
+      method: 'PATCH',
+    });
+  },
+
+  // Get work logs for an appointment
+  getWorkLogsByAppointment: async (appointmentId: string): Promise<ApiResponse<WorkLogDto[]>> => {
+    return apiCall<WorkLogDto[]>(`/work-logs/appointment/${appointmentId}`);
+  },
+
+  // Get technician work summary
+  getTechnicianSummary: async (technicianId: string): Promise<ApiResponse<any>> => {
+    return apiCall<any>(`/work-logs/technician/${technicianId}/summary`);
+  },
+};
+
+// Employee Management API
+export const employeeApi = {
+  // Get all employees
+  getAllEmployees: async (): Promise<ApiResponse<UserDto[]>> => {
+    return apiCall<UserDto[]>('/users?role=employee');
+  },
+
+  // Create new employee
+  createEmployee: async (employeeData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    nic: string;
+    password: string;
+  }): Promise<ApiResponse<UserDto>> => {
+    return apiCall<UserDto>('/auth/register/employee', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...employeeData,
+        role: 'employee'
+      }),
+    });
+  },
+
+  // Update employee
+  updateEmployee: async (employeeId: string, employeeData: Partial<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    nic: string;
+    isActive: boolean;
+  }>): Promise<ApiResponse<UserDto>> => {
+    return apiCall<UserDto>(`/users/${employeeId}`, {
+      method: 'PUT',
+      body: JSON.stringify(employeeData),
+    });
+  },
+
+  // Delete employee (soft delete - set isActive to false)
+  deleteEmployee: async (employeeId: string): Promise<ApiResponse<void>> => {
+    return apiCall<void>(`/users/${employeeId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Get employee by ID
+  getEmployeeById: async (employeeId: string): Promise<ApiResponse<UserDto>> => {
+    return apiCall<UserDto>(`/users/${employeeId}`);
+  },
+};
+
+// Service Record API
+export const serviceRecordApi = {
+  // Transfer appointment to service record
+  transferAppointmentToService: async (
+    appointmentId: string,
+    data: {
+      assignedEmployeeId: string;
+      estimatedCompletionTime?: string;
+    }
+  ): Promise<ApiResponse<any>> => {
+    return apiCall<any>(`/service-records/from-appointment/${appointmentId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// Dashboard API
+export const dashboardApi = {
+  // Get employee assignments with timer and progress
+  getEmployeeAssignments: async (): Promise<ApiResponse<any[]>> => {
+    return apiCall<any[]>('/dashboard/employee/assignments');
+  },
+
+  // Get employee appointments (upcoming appointments)
+  getEmployeeAppointments: async (): Promise<ApiResponse<any[]>> => {
+    return apiCall<any[]>('/dashboard/employee/appointments');
+  },
+
+  // Get employee weekly workload
+  getEmployeeWeeklyWorkload: async (): Promise<ApiResponse<any>> => {
+    return apiCall<any>('/dashboard/employee/weekly-workload');
+  },
+
+  // Start service timer
+  startServiceTimer: async (serviceRecordId: string): Promise<ApiResponse<any>> => {
+    return apiCall<any>(`/service-records/${serviceRecordId}/start-timer`, {
+      method: 'POST',
+    });
+  },
+
+  // Stop service timer
+  stopServiceTimer: async (serviceRecordId: string): Promise<ApiResponse<any>> => {
+    return apiCall<any>(`/service-records/${serviceRecordId}/stop-timer`, {
+      method: 'POST',
+    });
+  },
+
+  // Update service progress
+  updateServiceProgress: async (serviceRecordId: string, progressPercentage: number, liveUpdate?: string): Promise<ApiResponse<any>> => {
+    return apiCall<any>(`/service-records/${serviceRecordId}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify({ progressPercentage, liveUpdate }),
+    });
+  },
+
+  // Get customer service records with progress
+  getCustomerServiceRecords: async (): Promise<ApiResponse<any[]>> => {
+    return apiCall<any[]>('/dashboard/customer/service-records');
+  },
+
+  // Get customer upcoming appointments
+  getCustomerUpcomingAppointments: async (): Promise<ApiResponse<any[]>> => {
+    return apiCall<any[]>('/dashboard/customer/upcoming-appointments');
+  },
+
+  // Get customer recent activities
+  getCustomerRecentActivities: async (): Promise<ApiResponse<any[]>> => {
+    return apiCall<any[]>('/dashboard/customer/recent-activities');
+  },
+
+  // Get admin dashboard stats
+  getAdminStats: async (): Promise<ApiResponse<any>> => {
+    return apiCall<any>('/dashboard/admin/stats');
+  },
+
+  // Get admin monthly analytics (for charts)
+  getAdminMonthlyAnalytics: async (): Promise<ApiResponse<any[]>> => {
+    return apiCall<any[]>('/dashboard/admin/monthly-analytics');
+  },
+};
+
+// Service API
+export const serviceApi = {
+  // Get all services
+  getAllServices: async (params?: {
+    category?: string;
+    isActive?: boolean;
+    isPopular?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<ApiResponse<any[]>> => {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, String(value));
+        }
+      });
+    }
+    return apiCall<any[]>(`/services?${queryParams.toString()}`);
+  },
+
+  // Update service
+  updateService: async (serviceId: string, data: any): Promise<ApiResponse<any>> => {
+    return apiCall<any>(`/services/${serviceId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete service
+  deleteService: async (serviceId: string): Promise<ApiResponse<void>> => {
+    return apiCall<void>(`/services/${serviceId}`, {
+      method: 'DELETE',
+    });
+  },
+};

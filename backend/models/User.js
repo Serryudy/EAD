@@ -106,6 +106,33 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
     sparse: true
+  },
+
+  // Notification preferences
+  notificationPreferences: {
+    email: {
+      type: Boolean,
+      default: true
+    },
+    push: {
+      type: Boolean,
+      default: true
+    },
+    sms: {
+      type: Boolean,
+      default: false
+    },
+    types: {
+      appointment_created: { type: Boolean, default: true },
+      appointment_confirmed: { type: Boolean, default: true },
+      appointment_cancelled: { type: Boolean, default: true },
+      appointment_reminder: { type: Boolean, default: true },
+      service_started: { type: Boolean, default: true },
+      service_completed: { type: Boolean, default: true },
+      vehicle_ready: { type: Boolean, default: true },
+      payment_reminder: { type: Boolean, default: true },
+      system_notification: { type: Boolean, default: true }
+    }
   }
 
 }, {

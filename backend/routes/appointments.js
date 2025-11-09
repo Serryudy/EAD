@@ -5,7 +5,7 @@ const { protect } = require('../middlewares/auth');
 
 // All routes require authentication now (no more guest appointments)
 
-// NEW: Time slot availability routes (must be before /:id routes)
+// NEW: Time slot availability routes (MUST be before /:id routes to avoid conflicts)
 router.get('/available-slots', protect, appointmentController.getAvailableSlots);
 router.get('/available-dates', protect, appointmentController.getAvailableDates);
 router.get('/check-slot-availability', protect, appointmentController.checkSlotAvailability);

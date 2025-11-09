@@ -50,8 +50,6 @@ export default function DateSelectionStep({
       // Calculate total duration from all services (convert hours to minutes)
       const totalDuration = services.reduce((sum, service) => sum + (service.estimatedDuration * 60), 0);
       
-      const token = sessionStorage.getItem('authToken');
-      
       // Try to fetch from API with a timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
@@ -60,9 +58,7 @@ export default function DateSelectionStep({
         const response = await fetch(
           `http://localhost:5000/api/appointments/available-dates?duration=${totalDuration}&vehicleCount=${vehicles.length}`,
           {
-            headers: token ? {
-              'Authorization': `Bearer ${token}`
-            } : {},
+            credentials: 'include', // Include HTTP-only cookies
             signal: controller.signal
           }
         );

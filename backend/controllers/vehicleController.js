@@ -4,6 +4,16 @@ const Appointment = require('../models/Appointment');
 // Create a new vehicle
 exports.createVehicle = async (req, res) => {
   try {
+    console.log('\n🚗 === VEHICLE CREATION REQUEST ===');
+    console.log('📋 Request body:', JSON.stringify(req.body, null, 2));
+    console.log('👤 Authenticated user:', req.user ? {
+      id: req.user._id,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      name: req.user.name,
+      role: req.user.role
+    } : 'NO USER');
+
     const {
       licensePlate,
       make,
@@ -82,6 +92,13 @@ exports.createVehicle = async (req, res) => {
 // Get all vehicles
 exports.getAllVehicles = async (req, res) => {
   try {
+    console.log('\n🚗 === GET VEHICLES REQUEST ===');
+    console.log('👤 User:', req.user ? {
+      _id: req.user._id,
+      role: req.user.role,
+      firstName: req.user.firstName
+    } : 'NO USER');
+
     const { 
       ownerId, 
       isActive, 

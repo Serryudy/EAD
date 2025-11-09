@@ -1,5 +1,6 @@
 const express = require('express');
 const AuthController = require('../controllers/authController');
+const User = require('../models/User');
 const { 
   authenticateToken, 
   validateRefreshToken, 
@@ -7,7 +8,8 @@ const {
   otpRateLimit,
   employeeOnly,
   customerOnly,
-  adminOnly
+  adminOnly,
+  requireRole
 } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -57,6 +59,83 @@ router.post('/employee/create', authenticateToken, adminOnly, AuthController.emp
  * @access  Public
  */
 router.post('/employee/register', AuthController.employeeRegister);
+
+/**
+ * @route   POST /api/auth/register/employee
+ * @desc    Admin creates a new employee account (Alternative endpoint)
+ * @access  Private (Admin only)
+ */
+router.post('/register/employee', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { firstName, lastName, email, phoneNumber, nic, password } = req.body;
+
+    // Validation
+    if (!firstName || !lastName || !phoneNumber || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'First name, last name, phone number, and password are required'
+      });
+    }
+
+    // Check if phone number already exists
+    const existingUser = await User.findOne({ phoneNumber });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number already registered'
+      });
+    }
+
+    // Check if email already exists
+    if (email) {
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already registered'
+        });
+      }
+    }
+
+    // Create employee
+    const employee = new User({
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      nic,
+      password, // Will be hashed by pre-save hook
+      role: 'employee',
+      isVerified: true, // Auto-verify employees
+      isActive: true
+    });
+
+    await employee.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Employee created successfully',
+      data: {
+        _id: employee._id,
+        id: employee._id,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        phoneNumber: employee.phoneNumber,
+        nic: employee.nic,
+        role: employee.role,
+        isActive: employee.isActive
+      }
+    });
+  } catch (error) {
+    console.error('Employee registration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create employee',
+      error: error.message
+    });
+  }
+});
 
 /**
  * @route   POST /api/auth/employee/login
