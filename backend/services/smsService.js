@@ -2,7 +2,7 @@ const axios = require('axios');
 
 class SmsService {
   constructor() {
-    this.apiUrl = process.env.SMS_API_URL || 'https://arms-studies-loads-invitation.trycloudflare.com/send';
+    this.apiUrl = process.env.SMS_API_URL;
     this.enabled = process.env.SMS_ENABLED === 'true';
   }
 
