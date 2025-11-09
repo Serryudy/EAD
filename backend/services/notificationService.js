@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const emailNotificationService = require('./emailNotificationService');
+const smsService = require('./smsService');
 const User = require('../models/User');
 
 class NotificationService {
@@ -139,6 +140,11 @@ class NotificationService {
         await this.sendEmailNotification(notificationData.type, user, notificationData);
       }
 
+      // Send SMS notification if enabled and user has phone number
+      if (user.phoneNumber && (!prefs || prefs.sms !== false)) {
+        await this.sendSmsNotification(notificationData.type, user, notificationData);
+      }
+
       return notification;
     } catch (error) {
       console.error('❌ Send notification error:', error);
@@ -193,6 +199,70 @@ class NotificationService {
     }
   }
 
+  // Helper to send SMS based on notification type
+  async sendSmsNotification(type, user, data) {
+    try {
+      const customerName = user.firstName || user.name || 'Customer';
+      
+      switch (type) {
+        case 'appointment_created':
+        case 'appointment_confirmed':
+          if (data.appointment) {
+            await smsService.sendAppointmentConfirmation({
+              phoneNumber: user.phoneNumber,
+              customerName,
+              serviceName: data.appointment.serviceType || 'Service',
+              date: new Date(data.appointment.preferredDate).toLocaleDateString(),
+              time: data.appointment.scheduledTime || data.appointment.timeWindow,
+              referenceId: data.appointment._id.toString().substring(0, 8)
+            });
+          }
+          break;
+          
+        case 'status_update':
+          if (data.appointment && data.status) {
+            const vehicle = data.vehicle || {};
+            await smsService.sendStatusUpdate({
+              phoneNumber: user.phoneNumber,
+              customerName,
+              status: data.status,
+              vehicleMake: vehicle.make || 'Your',
+              vehicleModel: vehicle.model || 'vehicle'
+            });
+          }
+          break;
+          
+        case 'service_completed':
+          if (data.serviceRecord) {
+            const vehicle = data.vehicle || {};
+            await smsService.sendServiceCompletion({
+              phoneNumber: user.phoneNumber,
+              customerName,
+              vehicleMake: vehicle.make || 'Your',
+              vehicleModel: vehicle.model || 'vehicle',
+              totalCost: data.serviceRecord.totalCost || 0
+            });
+          }
+          break;
+          
+        case 'appointment_reminder':
+          if (data.appointment) {
+            await smsService.sendAppointmentReminder({
+              phoneNumber: user.phoneNumber,
+              customerName,
+              serviceName: data.appointment.serviceType || 'Service',
+              date: new Date(data.appointment.preferredDate).toLocaleDateString(),
+              time: data.appointment.scheduledTime || data.appointment.timeWindow
+            });
+          }
+          break;
+      }
+    } catch (error) {
+      console.error('SMS notification error:', error);
+      // Don't throw - SMS failure shouldn't break in-app notification
+    }
+  }
+
   // Send notification to multiple users
   async sendToMultipleUsers(userIds, notificationData) {
     try {
@@ -244,6 +314,13 @@ class NotificationService {
       date: appointment.scheduledDate
     });
     
+    // Fetch vehicle data if not populated
+    let vehicle = appointment.vehicleId;
+    if (vehicle && typeof vehicle === 'string') {
+      const Vehicle = require('../models/Vehicle');
+      vehicle = await Vehicle.findById(vehicle);
+    }
+    
     const result = await this.sendToUser(customerId, {
       recipientRole: 'customer',
       type: 'appointment_created',
@@ -255,7 +332,8 @@ class NotificationService {
       },
       priority: 'medium',
       actionUrl: `/appointments/${appointment._id}`,
-      appointment // Pass for email
+      appointment, // Pass for email
+      vehicle // Pass for SMS
     });
     
     console.log('✅ Notification result:', result ? result._id : 'null');
@@ -263,6 +341,13 @@ class NotificationService {
   }
 
   async notifyAppointmentConfirmed(appointment, customerId) {
+    // Fetch vehicle data if not populated
+    let vehicle = appointment.vehicleId;
+    if (vehicle && typeof vehicle === 'string') {
+      const Vehicle = require('../models/Vehicle');
+      vehicle = await Vehicle.findById(vehicle);
+    }
+    
     return await this.sendToUser(customerId, {
       recipientRole: 'customer',
       type: 'appointment_confirmed',
@@ -274,7 +359,8 @@ class NotificationService {
       },
       priority: 'high',
       actionUrl: `/appointments/${appointment._id}`,
-      appointment // Pass for email
+      appointment, // Pass for email
+      vehicle // Pass for SMS
     });
   }
 
@@ -328,6 +414,13 @@ class NotificationService {
   }
 
   async notifyServiceCompleted(serviceRecord, customerId) {
+    // Fetch vehicle data if not populated
+    let vehicle = serviceRecord.vehicleId;
+    if (vehicle && typeof vehicle === 'string') {
+      const Vehicle = require('../models/Vehicle');
+      vehicle = await Vehicle.findById(vehicle);
+    }
+    
     return await this.sendToUser(customerId, {
       recipientRole: 'customer',
       type: 'service_completed',
@@ -339,7 +432,8 @@ class NotificationService {
       },
       priority: 'high',
       actionUrl: `/service-progress/${serviceRecord._id}`,
-      serviceRecord // Pass for email
+      serviceRecord, // Pass for email
+      vehicle // Pass for SMS
     });
   }
 
