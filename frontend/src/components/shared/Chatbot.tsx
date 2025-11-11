@@ -25,12 +25,14 @@ export function Chatbot() {
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputMessage,
+      text: inputMessage.trim(),
       sender: 'user',
       timestamp: new Date()
     };
 
-    setMessages([...messages, userMessage]);
+    // Add user message to chat
+    setMessages((prev) => [...prev, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage('');
     setIsTyping(true);
 
@@ -69,7 +71,7 @@ export function Chatbot() {
         id: (Date.now() + 1).toString(),
         text: 'Sorry, I\'m having trouble connecting right now. Please try again later.',
         sender: 'bot',
-        timestamp: new Date()
+        timestamp: new Date(response.data.timestamp)
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
