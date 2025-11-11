@@ -3,12 +3,18 @@ import { MessageCircle, X, Send, Bot } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
-import { chatbotApi } from '../../services/api';
-import type { ChatMessageDto } from '../../services/api';
+import { chatbotApi, type ChatMessageDto } from '../../services/api';
+
+interface Message {
+  id: string;
+  text: string;
+  sender: 'user' | 'bot';
+  timestamp: Date;
+}
 
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessageDto[]>([
+  const [messages, setMessages] = useState<Message[]>([
     { id: '1', text: 'Hello! How can I help you today?', sender: 'bot', timestamp: new Date() }
   ]);
   const [inputMessage, setInputMessage] = useState('');
@@ -17,7 +23,7 @@ export function Chatbot() {
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
-    const userMessage: ChatMessageDto = {
+    const userMessage: Message = {
       id: Date.now().toString(),
       text: inputMessage.trim(),
       sender: 'user',
@@ -31,46 +37,41 @@ export function Chatbot() {
     setIsTyping(true);
 
     try {
-      // Call the AI API
-      const response = await chatbotApi.sendMessage({
-        message: currentInput,
-        conversationHistory: messages
-      });
+      // Convert messages to API format for conversation history
+      const conversationHistory: ChatMessageDto[] = messages.map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'bot',
+        content: msg.text,
+        timestamp: msg.timestamp
+      }));
 
-      // Add bot response to chat
-      const botResponse: ChatMessageDto = {
+      // Call the real chatbot API
+      const response = await chatbotApi.sendMessage(inputMessage, conversationHistory);
+
+      if (response.success && response.data) {
+        const botResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          text: response.data.message || response.data.response || 'I can help you with that!',
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages((prev) => [...prev, botResponse]);
+      } else {
+        // Fallback error message
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: 'Sorry, I encountered an error. Please try again later.',
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      console.error('Chatbot error:', error);
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: response.data.message,
+        text: 'Sorry, I\'m having trouble connecting right now. Please try again later.',
         sender: 'bot',
         timestamp: new Date(response.data.timestamp)
-      };
-
-      setMessages((prev) => [...prev, botResponse]);
-      
-      // If model is loading, show a note
-      if (response.data.isLoading) {
-        setTimeout(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: (Date.now() + 2).toString(),
-              text: "💡 Tip: The AI model is warming up. Your next messages will be faster!",
-              sender: 'bot',
-              timestamp: new Date()
-            }
-          ]);
-        }, 1000);
-      }
-
-    } catch (err) {
-      console.error('Chatbot error:', err);
-      
-      // Add error message to chat
-      const errorMessage: ChatMessageDto = {
-        id: (Date.now() + 1).toString(),
-        text: "I apologize, but I'm having trouble connecting right now. Please try again in a moment, or contact our service center directly for immediate assistance.",
-        sender: 'bot',
-        timestamp: new Date()
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {

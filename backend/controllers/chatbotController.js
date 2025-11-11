@@ -1,4 +1,4 @@
-const huggingfaceService = require('../services/huggingfaceService');
+const openaiService = require('../services/openaiService');
 const ServiceRecord = require('../models/ServiceRecord');
 const Appointment = require('../models/Appointment');
 const Service = require('../models/Service');
@@ -104,6 +104,22 @@ exports.chat = async (req, res) => {
     const { message, conversationHistory } = req.body;
     const userId = req.user?._id; // From auth middleware (if authenticated)
     const userRole = req.user?.role;
+    const userName = req.user ? `${req.user.firstName} ${req.user.lastName}` : null;
+
+    // DEBUG: Log user authentication status
+    console.log('🔍 CHATBOT AUTHENTICATION DEBUG:');
+    console.log('- User ID:', userId);
+    console.log('- User Role:', userRole);
+    console.log('- User Name:', userName);
+    console.log('- req.user:', req.user ? JSON.stringify({
+      id: req.user._id,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      role: req.user.role
+    }, null, 2) : 'Not present');
+    console.log('- Headers Authorization:', req.headers.authorization ? 'Present' : 'Missing');
+    console.log('- Cookies:', req.cookies ? JSON.stringify(req.cookies, null, 2) : 'No cookies');
+    console.log('- Raw Headers:', JSON.stringify(req.headers, null, 2));
 
     // Validate input
     if (!message || typeof message !== 'string') {
@@ -129,110 +145,108 @@ exports.chat = async (req, res) => {
       });
     }
 
-    // Check if the message is asking about service status/progress
-    const isStatusQuery = /status|progress|how (long|much)|when (will|done|finish|complete)|estimate|time/i.test(trimmedMessage);
+    // ALWAYS fetch user data if authenticated to provide personalized responses
+    let databaseContext = null;
+    let serviceInfo = null;
     
-    // Fetch real service data if user is authenticated and asking about status
-    let serviceContext = '';
-    if (userId && isStatusQuery) {
-      const serviceInfo = await getServiceProgressInfo(userId, userRole);
-      serviceContext = formatServiceContext(serviceInfo, userRole);
-      
-      // If we have real data, provide a smart response
-      if (serviceInfo.inProgressServices.length > 0 || serviceInfo.pendingAppointments.length > 0) {
-        let smartResponse = '';
+    if (userId) {
+      try {
+        // Get user's service information
+        serviceInfo = await getServiceProgressInfo(userId, userRole);
         
-        if (serviceInfo.inProgressServices.length > 0) {
-          const service = serviceInfo.inProgressServices[0];
-          const serviceName = service.serviceId?.name || 'Your service';
-          const progress = service.progressPercentage || 0;
-          const vehicle = service.vehicleId 
-            ? `${service.vehicleId.make} ${service.vehicleId.model}`
-            : 'your vehicle';
-          
-          let timeEstimate = '';
-          if (service.estimatedCompletionTime) {
-            const completionDate = new Date(service.estimatedCompletionTime);
-            const now = new Date();
-            const hoursLeft = Math.max(0, Math.round((completionDate - now) / (1000 * 60 * 60)));
-            if (hoursLeft > 0) {
-              timeEstimate = ` and should be ready in approximately ${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''}`;
-            } else {
-              timeEstimate = ' and should be ready very soon';
-            }
+        // Build comprehensive database context
+        databaseContext = {
+          user: {
+            id: userId,
+            name: userName,
+            role: userRole
+          },
+          currentData: {
+            inProgressServices: serviceInfo.inProgressServices.length,
+            upcomingAppointments: serviceInfo.pendingAppointments.length,
+            hasActiveServices: serviceInfo.inProgressServices.length > 0 || serviceInfo.pendingAppointments.length > 0
+          },
+          serviceDetails: {
+            inProgressServices: serviceInfo.inProgressServices.map(service => ({
+              serviceName: service.serviceId?.name || 'Service',
+              vehicleInfo: service.vehicleId 
+                ? `${service.vehicleId.make} ${service.vehicleId.model} (${service.vehicleId.licensePlate})`
+                : 'Vehicle info not available',
+              progress: service.progressPercentage || 0,
+              estimatedCompletion: service.estimatedCompletionTime,
+              status: service.status,
+              lastUpdate: service.liveUpdates && service.liveUpdates.length > 0 
+                ? service.liveUpdates[service.liveUpdates.length - 1].message 
+                : null
+            })),
+            upcomingAppointments: serviceInfo.pendingAppointments.map(apt => ({
+              appointmentDate: apt.appointmentDate,
+              appointmentTime: apt.appointmentTime,
+              serviceType: apt.serviceType,
+              vehicleInfo: apt.vehicleId 
+                ? `${apt.vehicleId.make} ${apt.vehicleId.model}`
+                : 'Vehicle',
+              status: apt.status
+            }))
           }
-          
-          smartResponse = `${serviceName} for your ${vehicle} is currently ${progress}% complete${timeEstimate}.`;
-          
-          if (serviceInfo.inProgressServices.length > 1) {
-            smartResponse += ` You also have ${serviceInfo.inProgressServices.length - 1} other service${serviceInfo.inProgressServices.length > 2 ? 's' : ''} in progress.`;
-          }
-          
-          if (service.liveUpdates && service.liveUpdates.length > 0) {
-            const lastUpdate = service.liveUpdates[service.liveUpdates.length - 1];
-            smartResponse += ` Latest update: ${lastUpdate.message}`;
-          }
-        }
+        };
         
-        if (serviceInfo.pendingAppointments.length > 0 && smartResponse === '') {
-          const apt = serviceInfo.pendingAppointments[0];
-          const date = new Date(apt.appointmentDate).toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            month: 'long', 
-            day: 'numeric' 
-          });
-          const time = apt.appointmentTime || 'a time to be confirmed';
-          smartResponse = `You have an appointment scheduled for ${date} at ${time} for ${apt.serviceType}.`;
-        }
-        
-        if (smartResponse) {
-          return res.status(200).json({
-            success: true,
-            data: {
-              message: smartResponse,
-              isLoading: false,
-              timestamp: new Date(),
-              hasRealData: true
-            }
-          });
-        }
+        console.log(`📊 Database context prepared for user: ${userName} (${userRole})`);
+      } catch (dbError) {
+        console.error('Database query error:', dbError);
+        // Continue without database context
       }
+    } else {
+      console.log('👤 Guest user - limited database context');
+      databaseContext = {
+        user: {
+          type: 'guest',
+          authenticated: false
+        },
+        message: 'User is not logged in - provide general AutoCare information'
+      };
     }
 
-    // Try to generate AI response with enhanced context (optional enhancement)
-    let aiResponse = null;
+    // Generate AI response with database context (OPENAI ONLY - NO FALLBACK)
     try {
-      const enhancedMessage = serviceContext 
-        ? `${trimmedMessage}\n${serviceContext}` 
-        : trimmedMessage;
+      console.log('🧠 Calling OpenAI with user database context...');
       
-      const response = await huggingfaceService.generateResponse(
-        enhancedMessage,
-        conversationHistory || []
+      const response = await openaiService.generateResponse(
+        trimmedMessage,
+        conversationHistory || [],
+        databaseContext
       );
       
-      // Only use AI response if it's not an error
-      if (!response.error) {
-        aiResponse = response.text;
-      }
+      console.log('✅ OpenAI Response Generated Successfully');
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          message: response.text,
+          isLoading: false,
+          timestamp: new Date(),
+          source: response.source,
+          model: response.model,
+          userAuthenticated: !!userId,
+          hasUserData: !!(userId && serviceInfo && (serviceInfo.inProgressServices.length > 0 || serviceInfo.pendingAppointments.length > 0))
+        }
+      });
+
     } catch (aiError) {
-      console.log('AI generation failed, using smart fallback');
-      // Continue with fallback - don't throw error
+      console.error('❌ OpenAI AI Failed:', aiError.message);
+      
+      // NO FALLBACK - Return AI error to user as requested
+      return res.status(500).json({
+        success: false,
+        message: 'AI Service Error',
+        data: {
+          message: `❌ AI Assistant is currently unavailable: ${aiError.message}. Please try again later or contact our service center directly.`,
+          isError: true,
+          timestamp: new Date(),
+          errorType: 'ai_service_error'
+        }
+      });
     }
-
-    // If we have AI response, use it; otherwise use intelligent fallback
-    const finalResponse = aiResponse || generateSmartFallback(trimmedMessage, serviceContext);
-
-    // Return the response
-    return res.status(200).json({
-      success: true,
-      data: {
-        message: finalResponse,
-        isLoading: false,
-        timestamp: new Date(),
-        source: aiResponse ? 'ai' : 'smart-fallback'
-      }
-    });
 
   } catch (error) {
     console.error('Chatbot Controller Error:', error);
@@ -250,65 +264,16 @@ exports.chat = async (req, res) => {
   }
 };
 
-// Smart fallback function when AI is unavailable
-function generateSmartFallback(message, context) {
-  const lowerMessage = message.toLowerCase();
-  
-  // If we have service context, return it
-  if (context) {
-    return context;
-  }
-  
-  // Common questions with smart responses
-  if (lowerMessage.includes('price') || lowerMessage.includes('cost') || lowerMessage.includes('how much')) {
-    return "Our services range from $50 for basic oil changes to $500 for major tune-ups. Would you like me to check the specific price for a service you're interested in?";
-  }
-  
-  if (lowerMessage.includes('hours') || lowerMessage.includes('open') || lowerMessage.includes('when')) {
-    return "We're open Monday-Friday 8AM-6PM, Saturday 9AM-4PM, and closed on Sundays. Would you like to book an appointment?";
-  }
-  
-  if (lowerMessage.includes('appointment') || lowerMessage.includes('book') || lowerMessage.includes('schedule')) {
-    return "I can help you book an appointment! We have availability throughout the week. What service do you need, and when would you prefer?";
-  }
-  
-  if (lowerMessage.includes('service') && (lowerMessage.includes('what') || lowerMessage.includes('offer'))) {
-    return "We offer a full range of vehicle services including: Oil Changes, Brake Inspections, Tire Rotations, Engine Diagnostics, Tune-ups, AC Repair, Transmission Service, and Battery Replacement. What service are you interested in?";
-  }
-  
-  if (lowerMessage.includes('status') || lowerMessage.includes('progress') || lowerMessage.includes('update')) {
-    return "I can check your service status for you! Could you please provide your appointment details or phone number?";
-  }
-  
-  if (lowerMessage.includes('cancel') || lowerMessage.includes('reschedule')) {
-    return "I can help you with that. To cancel or reschedule your appointment, please contact us at (555) 123-4567 or visit our service center.";
-  }
-  
-  if (lowerMessage.includes('location') || lowerMessage.includes('where') || lowerMessage.includes('address')) {
-    return "We're located at AutoCare Service Center. You can find directions through our website or give us a call at (555) 123-4567.";
-  }
-  
-  if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
-    return "Hello! I'm AutoCare Assistant. I can help you with service inquiries, appointment booking, pricing, and status updates. What can I help you with today?";
-  }
-  
-  if (lowerMessage.includes('thank')) {
-    return "You're welcome! Is there anything else I can help you with today?";
-  }
-  
-  // Default helpful response
-  return "I'm here to help with your vehicle service needs! You can ask me about:\n• Service prices and availability\n• Booking or checking appointments\n• Our business hours and location\n• Service status and progress updates\n\nWhat would you like to know?";
-}
-
 // Health check endpoint for chatbot service
 exports.healthCheck = async (req, res) => {
   try {
-    const apiKeyConfigured = !!process.env.HUGGINGFACE_API_KEY;
+    const apiKeyConfigured = !!process.env.OPENAI_API_KEY;
     
     return res.status(200).json({
       success: true,
       data: {
         status: 'operational',
+        service: 'OpenAI GPT-3.5-turbo',
         apiKeyConfigured,
         timestamp: new Date()
       }

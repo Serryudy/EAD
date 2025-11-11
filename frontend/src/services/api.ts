@@ -573,3 +573,41 @@ export const serviceApi = {
     });
   },
 };
+
+// Chatbot types
+export interface ChatMessageDto {
+  role: 'user' | 'bot';
+  content: string;
+  timestamp: Date;
+}
+
+export interface ChatRequestDto {
+  message: string;
+  conversationHistory?: ChatMessageDto[];
+}
+
+export interface ChatResponseDto {
+  message?: string;  // Backend returns 'message'
+  response?: string; // Fallback for compatibility
+  source?: 'database' | 'ai' | 'fallback';
+  isLoading?: boolean;
+  timestamp?: string;
+}
+
+// Chatbot API
+export const chatbotApi = {
+  // Send message to chatbot
+  sendMessage: async (message: string, conversationHistory?: ChatMessageDto[]): Promise<ApiResponse<ChatResponseDto>> => {
+    return apiCall<ChatResponseDto>('/chatbot/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message, conversationHistory }),
+    });
+  },
+
+  // Check chatbot health
+  checkHealth: async (): Promise<ApiResponse<any>> => {
+    return apiCall<any>('/chatbot/health');
+  },
+};
+
+
