@@ -92,7 +92,7 @@ export const Layout = () => {
         />
       )}
 
-      <Chatbot />
+  {currentUser.role === 'customer' && <Chatbot />}
 
       {showNotifications && (
         <NotificationCenter 
