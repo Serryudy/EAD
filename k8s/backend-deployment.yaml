@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ead-backend
+  labels:
+    app: ead-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ead-backend
+  template:
+    metadata:
+      labels:
+        app: ead-backend
+    spec:
+      containers:
+      - name: backend
+        image: udythro/ead-backend:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "5000"
+        # Add other environment variables from your .env file
+        # It's recommended to use Kubernetes Secrets for sensitive data
+        envFrom:
+        - secretRef:
+            name: backend-secrets
+            optional: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
