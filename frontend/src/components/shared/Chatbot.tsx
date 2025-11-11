@@ -3,19 +3,27 @@ import { MessageCircle, X, Send, Bot } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
+import { chatbotApi, type ChatMessageDto } from '../../services/api';
+
+interface Message {
+  id: string;
+  text: string;
+  sender: 'user' | 'bot';
+  timestamp: Date;
+}
 
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     { id: '1', text: 'Hello! How can I help you today?', sender: 'bot', timestamp: new Date() }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
-    const userMessage = {
+    const userMessage: Message = {
       id: Date.now().toString(),
       text: inputMessage,
       sender: 'user',
@@ -26,36 +34,47 @@ export function Chatbot() {
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate bot response
-    setTimeout(() => {
-      const botResponse = {
+    try {
+      // Convert messages to API format for conversation history
+      const conversationHistory: ChatMessageDto[] = messages.map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'bot',
+        content: msg.text,
+        timestamp: msg.timestamp
+      }));
+
+      // Call the real chatbot API
+      const response = await chatbotApi.sendMessage(inputMessage, conversationHistory);
+
+      if (response.success && response.data) {
+        const botResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          text: response.data.message || response.data.response || 'I can help you with that!',
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages((prev) => [...prev, botResponse]);
+      } else {
+        // Fallback error message
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: 'Sorry, I encountered an error. Please try again later.',
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      console.error('Chatbot error:', error);
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: getBotResponse(inputMessage),
+        text: 'Sorry, I\'m having trouble connecting right now. Please try again later.',
         sender: 'bot',
         timestamp: new Date()
       };
-      setMessages((prev) => [...prev, botResponse]);
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
-  };
-
-  const getBotResponse = (message: string) => {
-    const lowerMessage = message.toLowerCase();
-    
-    if (lowerMessage.includes('appointment') || lowerMessage.includes('book')) {
-      return 'I can help you book an appointment! Let me check available service slots... We have availability on Monday, Wednesday, and Friday next week. What time works best for you?';
     }
-    if (lowerMessage.includes('status') || lowerMessage.includes('progress')) {
-      return 'I can check your service status. Your current oil change service is 75% complete and should be ready by tomorrow afternoon.';
-    }
-    if (lowerMessage.includes('price') || lowerMessage.includes('cost')) {
-      return 'Our standard services range from $50 for oil changes to $500 for major tune-ups. Would you like a detailed quote for a specific service?';
-    }
-    if (lowerMessage.includes('hours') || lowerMessage.includes('open')) {
-      return 'We\'re open Monday-Friday 8AM-6PM, and Saturday 9AM-4PM. Closed on Sundays.';
-    }
-    
-    return 'I understand you\'re asking about ' + message + '. Let me connect you with a service advisor who can provide more specific information.';
   };
 
   return (
