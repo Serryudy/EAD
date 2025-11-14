@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ead-backend-service
+  labels:
+    app: ead-backend
+spec:
+  type: LoadBalancer
+  selector:
+    app: ead-backend
+  ports:
+  - name: http
+    protocol: TCP
+    port: 5000          # External port
+    targetPort: 5000    # Container port
+  # Optional: Specify session affinity if needed
+  sessionAffinity: None

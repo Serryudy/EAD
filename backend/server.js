@@ -16,8 +16,10 @@ const workLogRoutes = require('./routes/workLogs');
 const dashboardRoutes = require('./routes/dashboard');
 const serviceRecordRoutes = require('./routes/serviceRecords');
 const profileRoutes = require('./routes/profile');
+const chatbotRoutes = require('./routes/chatbot');
 const userRoutes = require('./routes/users');
 const notificationRoutes = require('./routes/notifications');
+const chatbotRoutes = require('./routes/chatbot');
 const notificationService = require('./services/notificationService');
 
 
@@ -76,7 +78,9 @@ app.use('/api/work-logs', workLogRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/service-records', serviceRecordRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/chatbot', chatbotRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

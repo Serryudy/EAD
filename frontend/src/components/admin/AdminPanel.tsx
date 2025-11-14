@@ -60,7 +60,7 @@ export function AdminPanel() {
   const [monthlyAnalytics, setMonthlyAnalytics] = useState<any[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const [adminStats, setAdminStats] = useState<any>(null);
-  const [loadingStats, setLoadingStats] = useState(true);
+  const [_loadingStats, setLoadingStats] = useState(true);
   const [employeeFormData, setEmployeeFormData] = useState({
     firstName: '',
     lastName: '',
