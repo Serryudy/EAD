@@ -132,7 +132,7 @@ describe('AuthController', () => {
       };
 
       User.findOne = jest.fn().mockResolvedValue(null);
-      User.mockImplementation(() => mockEmployee);
+      User.prototype.save = jest.fn().mockResolvedValue(mockEmployee);
 
       await AuthController.employeeRegister(req, res);
 
@@ -249,7 +249,7 @@ describe('AuthController', () => {
       };
 
       User.findOne = jest.fn().mockResolvedValue(null);
-      User.mockImplementation(() => mockAdmin);
+      User.prototype.save = jest.fn().mockResolvedValue(mockAdmin);
 
       await AuthController.adminRegister(req, res);
 
@@ -311,7 +311,7 @@ describe('AuthController', () => {
       OTPService.isValidMobile = jest.fn().mockReturnValue(true);
       OTPService.formatMobile = jest.fn().mockReturnValue('+94712345678');
       User.findOne = jest.fn().mockResolvedValue(null);
-      User.mockImplementation(() => mockCustomer);
+      User.prototype.save = jest.fn().mockResolvedValue(mockCustomer);
       JWTService.generateTokenPair = jest.fn().mockReturnValue(mockTokens);
       smsService.sendWelcomeSMS = jest.fn().mockResolvedValue(true);
 
