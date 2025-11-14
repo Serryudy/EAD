@@ -85,6 +85,8 @@ export interface ChatMessageDto {
   id: string;
   text: string;
   sender: 'user' | 'bot';
+  role: 'user' | 'bot';
+  content: string;
   timestamp: Date;
 }
 
@@ -94,10 +96,12 @@ export interface ChatRequestDto {
 }
 
 export interface ChatResponseDto {
-  message: string;
+  message?: string;
+  response?: string;
+  source?: 'database' | 'ai' | 'fallback';
   isLoading?: boolean;
   isError?: boolean;
-  timestamp: Date;
+  timestamp?: Date | string;
 }
 
 // API utility function
@@ -252,10 +256,10 @@ export const vehicleApi = {
 // Chatbot API functions
 export const chatbotApi = {
   // Send message to AI chatbot
-  sendMessage: async (data: ChatRequestDto): Promise<ApiResponse<ChatResponseDto>> => {
+  sendMessage: async (message: string, conversationHistory?: ChatMessageDto[]): Promise<ApiResponse<ChatResponseDto>> => {
     return apiCall<ChatResponseDto>('/chatbot/chat', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ message, conversationHistory }),
     });
   },
 
@@ -571,42 +575,6 @@ export const serviceApi = {
     return apiCall<void>(`/services/${serviceId}`, {
       method: 'DELETE',
     });
-  },
-};
-
-// Chatbot types
-export interface ChatMessageDto {
-  role: 'user' | 'bot';
-  content: string;
-  timestamp: Date;
-}
-
-export interface ChatRequestDto {
-  message: string;
-  conversationHistory?: ChatMessageDto[];
-}
-
-export interface ChatResponseDto {
-  message?: string;  // Backend returns 'message'
-  response?: string; // Fallback for compatibility
-  source?: 'database' | 'ai' | 'fallback';
-  isLoading?: boolean;
-  timestamp?: string;
-}
-
-// Chatbot API
-export const chatbotApi = {
-  // Send message to chatbot
-  sendMessage: async (message: string, conversationHistory?: ChatMessageDto[]): Promise<ApiResponse<ChatResponseDto>> => {
-    return apiCall<ChatResponseDto>('/chatbot/chat', {
-      method: 'POST',
-      body: JSON.stringify({ message, conversationHistory }),
-    });
-  },
-
-  // Check chatbot health
-  checkHealth: async (): Promise<ApiResponse<any>> => {
-    return apiCall<any>('/chatbot/health');
   },
 };
 

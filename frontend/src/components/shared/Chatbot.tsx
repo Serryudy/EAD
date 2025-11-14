@@ -32,13 +32,15 @@ export function Chatbot() {
 
     // Add user message to chat
     setMessages((prev) => [...prev, userMessage]);
-    const currentInput = inputMessage;
     setInputMessage('');
     setIsTyping(true);
 
     try {
       // Convert messages to API format for conversation history
       const conversationHistory: ChatMessageDto[] = messages.map(msg => ({
+        id: msg.id,
+        text: msg.text,
+        sender: msg.sender,
         role: msg.sender === 'user' ? 'user' : 'bot',
         content: msg.text,
         timestamp: msg.timestamp
@@ -71,7 +73,7 @@ export function Chatbot() {
         id: (Date.now() + 1).toString(),
         text: 'Sorry, I\'m having trouble connecting right now. Please try again later.',
         sender: 'bot',
-        timestamp: new Date(response.data.timestamp)
+        timestamp: new Date()
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
