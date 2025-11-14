@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build Docker Image
 
 on:
   push:
@@ -13,28 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repo
+      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Docker Buildx (optional, for multi-arch builds)
+      # Step 2: Set up Docker Buildx (optional, for advanced builds)
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 3: Log in to Docker Hub
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # Step 4: Build the Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t myapp:${{ github.sha }} ./backend
-
-      # Step 5: Push to Docker Hub
-      - name: Push Docker image
-        run: |
-          docker tag myapp:${{ github.sha }} mydockerhubusername/myapp:latest
-          docker push mydockerhubusername/myapp:latest
+      # Step 3: Build backend Docker image
+      - name: Build backend image
+        run: docker build -t myapp-backend:latest ./backend
