@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
       - name: backend
-        image: udythro/ead-backend:latest
+        image: ead-backend:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
         env:
